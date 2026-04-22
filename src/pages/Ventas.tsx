@@ -184,15 +184,9 @@ export default function Ventas() {
           filteredProducts.map((product, i) => (
             <div
               key={product.id}
-              className="flex items-center gap-3 bg-white rounded-xl px-3 py-2 shadow-sm animate-fade-in-up"
+              className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-sm animate-fade-in-up"
               style={{ animationDelay: `${i * 30}ms`, opacity: 0 }}
             >
-              <button
-                onClick={() => addToCart(product)}
-                className="w-10 h-10 bg-[#0F766E] text-white rounded-lg flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
-              >
-                <Plus size={18} />
-              </button>
               {product.image ? (
                 <img src={product.image} alt={product.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
               ) : (
@@ -202,13 +196,28 @@ export default function Ventas() {
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-[#0F172A] truncate">{product.name}</p>
-                <p className="text-xs text-[#94A3B8]">{product.category} · Stock: {product.stock}</p>
-                {product.type === 'consignment' && (
-                  <span className="text-[10px] bg-[#DBEAFE] text-[#1E40AF] px-1.5 py-0.5 rounded">Ajeno</span>
-                )}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#94A3B8]">{product.category}</span>
+                  <span className="text-xs text-[#94A3B8]">·</span>
+                  <span className="text-xs text-[#94A3B8]">Stock: {product.stock}</span>
+                  {product.type === 'consignment' && (
+                    <>
+                      <span className="text-xs text-[#94A3B8]">·</span>
+                      <span className="text-[10px] bg-[#DBEAFE] text-[#1E40AF] px-1 py-0.5 rounded">Ajeno</span>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-sm font-bold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="text-right">
+                  <p className="text-sm font-bold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
+                </div>
+                <button
+                  onClick={() => addToCart(product)}
+                  className="w-9 h-9 bg-[#0F766E] text-white rounded-lg flex items-center justify-center active:scale-90 transition-transform"
+                >
+                  <Plus size={16} />
+                </button>
               </div>
             </div>
           ))
