@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Search, ShoppingCart, X, Minus, Plus, Check } from 'lucide-react';
 import { db, generateReceiptNumber } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
-import type { Product, Currency, PaymentMethod, SaleItem, CartItem } from '@/types';
+import type { Product, Currency, PaymentMethod, SaleItem, CartItem, Sale } from '@/types';
 
 type ViewState = 'products' | 'checkout' | 'receipt';
 
@@ -20,6 +20,12 @@ export default function Ventas() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   const products = useLiveQuery(() => db.products.toArray(), []);
+  const customers = useLiveQuery(() => db.customers.toArray(), []);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+
+  const selectedCustomer = useMemo(() => {
+    return customers?.find(c => c.id === selectedCustomerId) || null;
+  }, [customers, selectedCustomerId]);
 
   const categories = useMemo(() => {
     if (!products) return ['Todos'];
@@ -73,6 +79,12 @@ export default function Ventas() {
   const handleCheckout = useCallback(async () => {
     if (cart.length === 0) return;
 
+    // Validar cliente para venta a plazos
+    if (paymentMethod === 'installment' && !selectedCustomerId) {
+      showToast('Seleccione un cliente para venta a plazos', 'error');
+      return;
+    }
+
     const confirmed = confirm(`¿Confirmar venta?\nTotal: ${formatPrice(finalTotal, 'CUP')}`);
     if (!confirmed) return;
 
@@ -89,7 +101,7 @@ export default function Ventas() {
 
       const total = cart.reduce((sum, item) => sum + convertToCUP(item.unitPrice * item.quantity, item.unitCurrency), 0) - discount;
 
-      await db.sales.add({
+      const saleData: Omit<Sale, 'id'> = {
         items: saleItems,
         total: Math.max(0, total),
         currency: selectedCurrency,
@@ -97,7 +109,29 @@ export default function Ventas() {
         discount,
         createdAt: new Date(),
         receiptNumber,
-      });
+        customerId: paymentMethod === 'installment' ? selectedCustomerId ?? undefined : undefined,
+      };
+
+      await db.sales.add(saleData);
+
+      // Crear cuotas para venta a plazos
+      if (paymentMethod === 'installment' && selectedCustomerId && selectedCustomer) {
+        const installmentAmount = Math.max(0, total);
+        await db.installments.add({
+          saleId: 0,
+          customerId: selectedCustomerId,
+          customerName: selectedCustomer.name,
+          totalAmount: installmentAmount,
+          remainingAmount: installmentAmount,
+          paidAmount: 0,
+          numberOfPayments: 4,
+          frequency: 'weekly',
+          startDate: new Date(),
+          status: 'active',
+          createdAt: new Date(),
+        });
+        showToast(`Cuotas creadas para ${selectedCustomer.name}`, 'success');
+      }
 
       for (const item of cart) {
         const product = await db.products.get(item.productId);
@@ -109,12 +143,13 @@ export default function Ventas() {
       setLastReceipt(receiptNumber);
       setCart([]);
       setCheckoutOpen(false);
+      setSelectedCustomerId(null);
       setView('receipt');
       showToast('Venta completada exitosamente', 'success');
     } catch {
       showToast('Error al procesar la venta', 'error');
     }
-  }, [cart, paymentMethod, selectedCurrency, discount, convertToCUP, showToast]);
+  }, [cart, paymentMethod, selectedCurrency, discount, convertToCUP, showToast, selectedCustomerId, selectedCustomer]);
 
   const finalTotal = Math.max(0, cartTotal - discount);
 
@@ -310,6 +345,26 @@ export default function Ventas() {
                   ))}
                 </div>
               </div>
+
+              {/* Customer selector for installments */}
+              {paymentMethod === 'installment' && (
+                <div>
+                  <label className="text-sm font-medium text-[#475569] block mb-2">Cliente *</label>
+                  <select
+                    value={selectedCustomerId || ''}
+                    onChange={(e) => setSelectedCustomerId(Number(e.target.value) || null)}
+                    className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none bg-white"
+                  >
+                    <option value="">Seleccionar cliente...</option>
+                    {customers?.map(c => (
+                      <option key={c.id} value={c.id}>{c.name} - {c.phone}</option>
+                    ))}
+                  </select>
+                  {!selectedCustomerId && (
+                    <p className="text-xs text-[#DC2626] mt-1">Seleccione un cliente para venta a plazos</p>
+                  )}
+                </div>
+              )}
 
               {/* Currency */}
               <div>
