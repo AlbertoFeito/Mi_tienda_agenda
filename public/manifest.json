@@ -2,20 +2,20 @@
   "name": "Mi Tienda",
   "short_name": "MiTienda",
   "description": "Sistema de gestión comercial para pequeños negocios",
-  "start_url": "/Mi_tienda_agenda/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#F1F5F9",
   "theme_color": "#134E4A",
   "orientation": "portrait",
-  "scope": "/Mi_tienda_agenda/",
+  "scope": ".",
   "icons": [
     {
-      "src": "/Mi_tienda_agenda/icon-192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/Mi_tienda_agenda/icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
