@@ -208,16 +208,8 @@ export default function Ventas() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="text-right">
-                  <p className="text-sm font-bold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
-                </div>
-                <button
-                  onClick={() => addToCart(product)}
-                  className="w-9 h-9 bg-[#0F766E] text-white rounded-lg flex items-center justify-center active:scale-90 transition-transform"
-                >
-                  <Plus size={16} />
-                </button>
+              <div className="text-right flex-shrink-0">
+                <p className="text-sm font-bold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
               </div>
             </div>
           ))
