@@ -184,7 +184,8 @@ export default function Ventas() {
           filteredProducts.map((product, i) => (
             <div
               key={product.id}
-              className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-sm animate-fade-in-up"
+              onClick={() => addToCart(product)}
+              className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-sm animate-fade-in-up cursor-pointer active:bg-[#F1F5F9]"
               style={{ animationDelay: `${i * 30}ms`, opacity: 0 }}
             >
               {product.image ? (
