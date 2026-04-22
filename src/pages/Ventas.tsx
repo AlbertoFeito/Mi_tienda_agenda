@@ -22,6 +22,8 @@ export default function Ventas() {
   const products = useLiveQuery(() => db.products.toArray(), []);
   const customers = useLiveQuery(() => db.customers.toArray(), []);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [numberOfPayments, setNumberOfPayments] = useState(4);
+  const [installmentFrequency, setInstallmentFrequency] = useState<'weekly' | 'biweekly' | 'monthly'>('weekly');
 
   const selectedCustomer = useMemo(() => {
     return customers?.find(c => c.id === selectedCustomerId) || null;
@@ -116,16 +118,16 @@ export default function Ventas() {
 
       // Crear cuotas para venta a plazos
       if (paymentMethod === 'installment' && selectedCustomerId && selectedCustomer) {
-        const installmentAmount = Math.max(0, total);
+        const totalAmount = Math.max(0, total);
         await db.installments.add({
           saleId: 0,
           customerId: selectedCustomerId,
           customerName: selectedCustomer.name,
-          totalAmount: installmentAmount,
-          remainingAmount: installmentAmount,
+          totalAmount,
+          remainingAmount: totalAmount,
           paidAmount: 0,
-          numberOfPayments: 4,
-          frequency: 'weekly',
+          numberOfPayments,
+          frequency: installmentFrequency,
           startDate: new Date(),
           status: 'active',
           createdAt: new Date(),
@@ -149,7 +151,7 @@ export default function Ventas() {
     } catch {
       showToast('Error al procesar la venta', 'error');
     }
-  }, [cart, paymentMethod, selectedCurrency, discount, convertToCUP, showToast, selectedCustomerId, selectedCustomer]);
+  }, [cart, paymentMethod, selectedCurrency, discount, convertToCUP, showToast, selectedCustomerId, selectedCustomer, numberOfPayments, installmentFrequency]);
 
   const finalTotal = Math.max(0, cartTotal - discount);
 
@@ -348,20 +350,62 @@ export default function Ventas() {
 
               {/* Customer selector for installments */}
               {paymentMethod === 'installment' && (
-                <div>
-                  <label className="text-sm font-medium text-[#475569] block mb-2">Cliente *</label>
-                  <select
-                    value={selectedCustomerId || ''}
-                    onChange={(e) => setSelectedCustomerId(Number(e.target.value) || null)}
-                    className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none bg-white"
-                  >
-                    <option value="">Seleccionar cliente...</option>
-                    {customers?.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} - {c.phone}</option>
-                    ))}
-                  </select>
-                  {!selectedCustomerId && (
-                    <p className="text-xs text-[#DC2626] mt-1">Seleccione un cliente para venta a plazos</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-[#475569] block mb-2">Cliente *</label>
+                    <select
+                      value={selectedCustomerId || ''}
+                      onChange={(e) => setSelectedCustomerId(Number(e.target.value) || null)}
+                      className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none bg-white"
+                    >
+                      <option value="">Seleccionar cliente...</option>
+                      {customers?.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} - {c.phone}</option>
+                      ))}
+                    </select>
+                    {!selectedCustomerId && (
+                      <p className="text-xs text-[#DC2626] mt-1">Seleccione un cliente para venta a plazos</p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium text-[#475569] block mb-2">N° de cuotas</label>
+                      <select
+                        value={numberOfPayments}
+                        onChange={(e) => setNumberOfPayments(Number(e.target.value))}
+                        className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base bg-white"
+                      >
+                        {[2, 4, 6, 8, 12].map(n => (
+                          <option key={n} value={n}>{n} cuotas</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-[#475569] block mb-2">Frecuencia</label>
+                      <select
+                        value={installmentFrequency}
+                        onChange={(e) => setInstallmentFrequency(e.target.value as 'weekly' | 'biweekly' | 'monthly')}
+                        className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base bg-white"
+                      >
+                        <option value="weekly">Semanal</option>
+                        <option value="biweekly">Quincenal</option>
+                        <option value="monthly">Mensual</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {selectedCustomer && (
+                    <div className="bg-[#F0FDFA] rounded-lg p-3">
+                      <p className="text-xs text-[#475569]">Valor por cuota:</p>
+                      <p className="text-lg font-bold text-[#0F766E]">
+                        {formatPrice(finalTotal / numberOfPayments, selectedCurrency)}
+                      </p>
+                      <p className="text-xs text-[#94A3B8]">
+                        {installmentFrequency === 'weekly' ? 'Cada semana' : 
+                         installmentFrequency === 'biweekly' ? 'Cada 2 semanas' : 'Cada mes'}
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
