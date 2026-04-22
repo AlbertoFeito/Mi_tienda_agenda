@@ -1,25 +1,23 @@
 {
-  "name": "MiTienda",
+  "name": "Mi Tienda",
   "short_name": "MiTienda",
-  "description": "Sistema de gestión comercial para pequeños negocios en Cuba",
-  "start_url": "/",
+  "description": "Sistema de gestión comercial para pequeños negocios",
+  "start_url": "/Mi_tienda_agenda/",
   "display": "standalone",
   "background_color": "#F1F5F9",
   "theme_color": "#134E4A",
   "orientation": "portrait",
-  "scope": "/",
+  "scope": "/Mi_tienda_agenda/",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/Mi_tienda_agenda/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/Mi_tienda_agenda/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }
