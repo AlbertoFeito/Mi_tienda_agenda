@@ -34,9 +34,15 @@ export default function Dashboard() {
       return sum + convertToCUP(s.total, s.currency);
     }, 0);
 
+    // Calcular ganancia de hoy: (precio venta - precio costo) por producto
     const todayProfit = todaySalesList.reduce((sum, s) => {
       return sum + s.items.reduce((itemSum, item) => {
-        return itemSum + convertToCUP(item.subtotal - (item.unitPrice * item.quantity), item.unitCurrency);
+        // Buscar precio de costo del producto
+        const product = products.find(p => p.id === item.productId);
+        if (!product) return itemSum;
+        const costPriceCUP = convertToCUP(product.costPrice, product.costCurrency);
+        const salePriceCUP = convertToCUP(item.unitPrice, item.unitCurrency);
+        return itemSum + (salePriceCUP - costPriceCUP) * item.quantity;
       }, 0);
     }, 0);
 
