@@ -182,10 +182,9 @@ export default function Ventas() {
           </div>
         ) : (
           filteredProducts.map((product, i) => (
-            <button
+            <div
               key={product.id}
-              onClick={() => addToCart(product)}
-              className="w-full flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm text-left active:scale-[0.98] active:bg-[#F1F5F9] transition-all animate-fade-in-up"
+              className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm animate-fade-in-up"
               style={{ animationDelay: `${i * 30}ms`, opacity: 0 }}
             >
               {product.image ? (
@@ -202,10 +201,18 @@ export default function Ventas() {
                   <span className="text-[10px] bg-[#DBEAFE] text-[#1E40AF] px-1.5 py-0.5 rounded">Ajeno · {product.ownerName}</span>
                 )}
               </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-sm font-bold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="text-right">
+                  <p className="text-sm font-bold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
+                </div>
+                <button
+                  onClick={() => addToCart(product)}
+                  className="w-10 h-10 bg-[#0F766E] text-white rounded-lg flex items-center justify-center active:scale-90 transition-transform"
+                >
+                  <Plus size={18} />
+                </button>
               </div>
-            </button>
+            </div>
           ))
         )}
       </div>
