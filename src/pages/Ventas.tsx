@@ -209,7 +209,7 @@ export default function Ventas() {
 
       {/* Cart Bar */}
       {cartCount > 0 && (
-        <div className="fixed bottom-16 left-4 right-4 z-[150] animate-slide-up">
+        <div className="fixed bottom-20 left-4 right-4 z-[150] animate-slide-up">
           <button
             onClick={() => setCheckoutOpen(true)}
             className="w-full bg-[#134E4A] text-white rounded-xl p-4 flex items-center justify-between shadow-lg"
@@ -235,7 +235,7 @@ export default function Ventas() {
       {checkoutOpen && (
         <div className="fixed inset-0 z-[200] flex flex-col justify-end">
           <div className="absolute inset-0 bg-black/40" onClick={() => setCheckoutOpen(false)} />
-          <div className="relative bg-white rounded-t-2xl max-h-[80vh] flex flex-col animate-slide-up">
+          <div className="relative bg-white rounded-t-2xl max-h-[90vh] flex flex-col animate-slide-up">
             <div className="flex items-center justify-between p-4 border-b border-[#E2E8F0] flex-shrink-0">
               <h3 className="text-lg font-semibold">Resumen de Venta</h3>
               <button onClick={() => setCheckoutOpen(false)} className="p-1">
@@ -243,7 +243,7 @@ export default function Ventas() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
               {/* Cart Items */}
               <div className="space-y-2">
                 {cart.map((item) => (
