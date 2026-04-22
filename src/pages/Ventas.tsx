@@ -174,7 +174,7 @@ export default function Ventas() {
       </div>
 
       {/* Products List */}
-      <div className="space-y-2 mt-2 pb-24">
+      <div className="space-y-2 mt-2 pb-32">
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <PackageFallback />
@@ -356,13 +356,22 @@ export default function Ventas() {
             </div>
 
             <div className="p-4 border-t border-[#E2E8F0] flex-shrink-0 safe-area-bottom">
-              <button
-                onClick={handleCheckout}
-                className="w-full h-14 bg-[#059669] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
-              >
-                <Check size={20} />
-                Completar Venta
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCheckoutOpen(false)}
+                  className="flex-1 h-14 bg-[#DC2626] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+                >
+                  <X size={20} />
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCheckout}
+                  className="flex-1 h-14 bg-[#059669] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+                >
+                  <Check size={20} />
+                  Completar
+                </button>
+              </div>
             </div>
           </div>
         </div>
