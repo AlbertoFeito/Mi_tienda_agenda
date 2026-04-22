@@ -184,33 +184,31 @@ export default function Ventas() {
           filteredProducts.map((product, i) => (
             <div
               key={product.id}
-              className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm animate-fade-in-up"
+              className="flex items-center gap-3 bg-white rounded-xl px-3 py-2 shadow-sm animate-fade-in-up"
               style={{ animationDelay: `${i * 30}ms`, opacity: 0 }}
             >
+              <button
+                onClick={() => addToCart(product)}
+                className="w-10 h-10 bg-[#0F766E] text-white rounded-lg flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
+              >
+                <Plus size={18} />
+              </button>
               {product.image ? (
-                <img src={product.image} alt={product.name} className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+                <img src={product.image} alt={product.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
               ) : (
-                <div className="w-14 h-14 rounded-lg bg-[#F1F5F9] flex items-center justify-center flex-shrink-0">
-                  <span className="text-lg">📦</span>
+                <div className="w-10 h-10 rounded-lg bg-[#F1F5F9] flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm">📦</span>
                 </div>
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-[#0F172A] truncate">{product.name}</p>
                 <p className="text-xs text-[#94A3B8]">{product.category} · Stock: {product.stock}</p>
                 {product.type === 'consignment' && (
-                  <span className="text-[10px] bg-[#DBEAFE] text-[#1E40AF] px-1.5 py-0.5 rounded">Ajeno · {product.ownerName}</span>
+                  <span className="text-[10px] bg-[#DBEAFE] text-[#1E40AF] px-1.5 py-0.5 rounded">Ajeno</span>
                 )}
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="text-right">
-                  <p className="text-sm font-bold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
-                </div>
-                <button
-                  onClick={() => addToCart(product)}
-                  className="w-10 h-10 bg-[#0F766E] text-white rounded-lg flex items-center justify-center active:scale-90 transition-transform"
-                >
-                  <Plus size={18} />
-                </button>
+              <div className="text-right flex-shrink-0">
+                <p className="text-sm font-bold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
               </div>
             </div>
           ))
@@ -256,9 +254,9 @@ export default function Ventas() {
 
       {/* Checkout Bottom Sheet */}
       {checkoutOpen && (
-        <div className="fixed inset-0 z-[200] flex flex-col justify-end">
+        <div className="fixed inset-0 z-[200]">
           <div className="absolute inset-0 bg-black/40" onClick={() => setCheckoutOpen(false)} />
-          <div className="relative bg-white rounded-t-2xl max-h-[90vh] flex flex-col animate-slide-up">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] flex flex-col animate-slide-up">
             <div className="flex items-center justify-between p-4 border-b border-[#E2E8F0] flex-shrink-0">
               <h3 className="text-lg font-semibold">Resumen de Venta</h3>
               <button onClick={() => setCheckoutOpen(false)} className="p-1">
@@ -266,7 +264,7 @@ export default function Ventas() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {/* Cart Items */}
               <div className="space-y-2">
                 {cart.map((item) => (
@@ -355,27 +353,27 @@ export default function Ventas() {
                     <span className="font-medium text-[#DC2626]">-{formatPrice(discount, 'CUP')}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-lg font-bold pt-1">
-                  <span className="text-[#0F172A]">Total</span>
-                  <span className="text-[#0F766E]">{formatPrice(finalTotal, 'CUP')}</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#475569]">Total</span>
+                  <span className="text-[#0F766E] font-bold">{formatPrice(finalTotal, 'CUP')}</span>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 border-t border-[#E2E8F0] flex-shrink-0 safe-area-bottom">
+            <div className="p-4 border-t border-[#E2E8F0] flex-shrink-0">
               <div className="flex gap-2">
                 <button
                   onClick={() => setCheckoutOpen(false)}
-                  className="flex-1 h-14 bg-[#DC2626] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+                  className="flex-1 h-12 bg-[#DC2626] text-white rounded-xl font-semibold text-sm active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
                 >
-                  <X size={20} />
+                  <X size={18} />
                   Cancelar
                 </button>
                 <button
                   onClick={handleCheckout}
-                  className="flex-1 h-14 bg-[#059669] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+                  className="flex-1 h-12 bg-[#059669] text-white rounded-xl font-semibold text-sm active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
                 >
-                  <Check size={20} />
+                  <Check size={18} />
                   Completar
                 </button>
               </div>
