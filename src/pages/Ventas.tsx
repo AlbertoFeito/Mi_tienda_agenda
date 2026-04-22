@@ -219,35 +219,35 @@ export default function Ventas() {
 
       {/* Cart Bar */}
       {cartCount > 0 && (
-        <div className="fixed bottom-20 left-4 right-4 z-[150] animate-slide-up">
+        <div className="fixed bottom-20 left-2 right-2 z-[150] animate-slide-up">
           <div className="flex gap-2">
             <button
               onClick={() => {
-                if (confirm('¿Cancelar esta venta?')) {
+                if (confirm('¿Desea cancelar la venta?')) {
                   setCart([]);
                 }
               }}
-              className="flex-1 bg-[#DC2626] text-white rounded-xl p-4 flex items-center justify-center gap-2 shadow-lg"
+              className="flex-1 bg-[#DC2626] text-white rounded-xl py-3 px-2 flex items-center justify-center gap-2 shadow-lg"
             >
-              <X size={20} />
-              <span className="text-sm font-semibold">Cancelar</span>
+              <X size={18} />
+              <span className="text-xs font-semibold">Cancelar</span>
             </button>
             <button
               onClick={() => setCheckoutOpen(true)}
-              className="flex-1 bg-[#134E4A] text-white rounded-xl p-4 flex items-center justify-between shadow-lg"
+              className="flex-1 bg-[#134E4A] text-white rounded-xl py-3 px-2 flex items-center justify-between shadow-lg"
             >
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <ShoppingCart size={20} />
-                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#DC2626] rounded-full text-[10px] font-bold flex items-center justify-center">
+                  <ShoppingCart size={18} />
+                  <span className="absolute -top-2 -right-2 w-4 h-4 bg-[#DC2626] rounded-full text-[9px] font-bold flex items-center justify-center">
                     {cartCount}
                   </span>
                 </div>
-                <span className="text-sm">{cartCount} producto(s)</span>
+                <span className="text-xs">{cartCount}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="font-bold">{formatPrice(cartTotal, 'CUP')}</span>
-                <span className="bg-white text-[#134E4A] px-3 py-1.5 rounded-lg text-sm font-semibold">Procesar</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-xs">{formatPrice(cartTotal, 'CUP')}</span>
+                <span className="bg-white text-[#134E4A] px-2 py-1 rounded-lg text-xs font-semibold">Procesar</span>
               </div>
             </button>
           </div>
