@@ -9,7 +9,7 @@ type ViewState = 'list' | 'form';
 type ProductFilter = 'all' | 'own' | 'consignment' | 'lowstock';
 
 export default function Productos() {
-  const { formatPrice, showToast } = useApp();
+  const { formatPrice } = useApp();
   const [view, setView] = useState<ViewState>('list');
   const [filter, setFilter] = useState<ProductFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
