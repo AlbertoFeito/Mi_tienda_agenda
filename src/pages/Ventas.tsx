@@ -59,7 +59,7 @@ export default function Ventas() {
     const handleResize = () => {
       if (checkoutRef.current) {
         const vh = window.innerHeight;
-        checkoutRef.current.style.maxHeight = `${vh * 0.85}px`;
+        checkoutRef.current.style.maxHeight = `${vh * 0.9}px`;
       }
     };
     handleResize();
@@ -274,18 +274,18 @@ export default function Ventas() {
         </button>
       )}
 
-      {/* Checkout Bottom Sheet */}
+      {/* Checkout Bottom Sheet - Z-INDEX ELEVADO A 100 */}
       {checkoutOpen && (
         <>
           <div 
-            className="fixed inset-0 bg-black/50 z-50"
+            className="fixed inset-0 bg-black/50 z-[100]"
             onClick={() => setCheckoutOpen(false)}
           />
           
           <div 
             ref={checkoutRef}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col"
-            style={{ maxHeight: '85vh' }}
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[100] flex flex-col"
+            style={{ maxHeight: '90vh' }}
           >
             <div className="flex justify-center pt-3 pb-1">
               <div className="w-10 h-1 bg-gray-300 rounded-full" />
@@ -296,8 +296,8 @@ export default function Ventas() {
               <p className="text-sm text-gray-500">{cartCount} productos</p>
             </div>
 
-            {/* CONTENIDO SCROLLEABLE CON PADDING INFERIOR AUMENTADO */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 pb-24 space-y-4">
+            {/* CONTENIDO SCROLLEABLE */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               {/* Items del carrito */}
               <div className="space-y-3">
                 {cart.map((item) => (
@@ -510,10 +510,13 @@ export default function Ventas() {
                   <span className="text-[#0F766E]">{formatPrice(finalTotal, 'CUP')}</span>
                 </div>
               </div>
+              
+              {/* ESPACIO EXTRA AL FINAL DEL CONTENIDO SCROLLEABLE */}
+              <div className="h-20" />
             </div>
 
-            {/* BOTÓN PROCESAR CON MARGEN INFERIOR PARA LA NAVBAR */}
-            <div className="px-5 py-4 pb-8 border-t border-gray-100 bg-white">
+            {/* BOTÓN PROCESAR - AHORA ES STICKY/FIJO DENTRO DEL SHEET */}
+            <div className="px-5 py-4 border-t border-gray-100 bg-white shrink-0">
               <button
                 onClick={handleProcessSale}
                 disabled={cart.length === 0 || (paymentMethod === 'installment' && !selectedCustomerId)}
