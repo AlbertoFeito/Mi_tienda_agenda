@@ -8,16 +8,13 @@ import type { Product, CartItem, PaymentMethod, Currency } from '@/types';
 export default function Ventas() {
   const { formatPrice, convertToCUP, showToast } = useApp();
   
-  // Productos
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   
-  // Carrito
   const [cart, setCart] = useState<CartItem[]>([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   
-  // Checkout
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>('CUP');
   const [discount, setDiscount] = useState(0);
@@ -48,7 +45,6 @@ export default function Ventas() {
   
   const finalTotal = Math.max(0, cartTotal - discount);
 
-  // Cerrar dropdown al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (customerDropdownRef.current && !customerDropdownRef.current.contains(e.target as Node)) {
@@ -59,7 +55,6 @@ export default function Ventas() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Ajustar altura cuando aparece el teclado
   useEffect(() => {
     const handleResize = () => {
       if (checkoutRef.current) {
@@ -136,7 +131,6 @@ export default function Ventas() {
           receiptNumber: receipt
         });
 
-        // Actualizar stock
         for (const item of cart) {
           const product = await db.products.get(item.productId);
           if (product) {
@@ -147,7 +141,6 @@ export default function Ventas() {
           }
         }
 
-        // Si es a plazos, crear installment
         if (paymentMethod === 'installment' && selectedCustomerId) {
           await db.installments.add({
             saleId: saleId as number,
@@ -284,31 +277,27 @@ export default function Ventas() {
       {/* Checkout Bottom Sheet */}
       {checkoutOpen && (
         <>
-          {/* Overlay */}
           <div 
             className="fixed inset-0 bg-black/50 z-50"
             onClick={() => setCheckoutOpen(false)}
           />
           
-          {/* Sheet */}
           <div 
             ref={checkoutRef}
             className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col"
             style={{ maxHeight: '85vh' }}
           >
-            {/* Handle */}
             <div className="flex justify-center pt-3 pb-1">
               <div className="w-10 h-1 bg-gray-300 rounded-full" />
             </div>
             
-            {/* Header */}
             <div className="px-5 pb-3 border-b border-gray-100">
               <h2 className="text-lg font-bold text-gray-900">Resumen de Venta</h2>
               <p className="text-sm text-gray-500">{cartCount} productos</p>
             </div>
 
-            {/* Contenido scrolleable */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+            {/* CONTENIDO SCROLLEABLE CON PADDING INFERIOR AUMENTADO */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 pb-24 space-y-4">
               {/* Items del carrito */}
               <div className="space-y-3">
                 {cart.map((item) => (
@@ -523,8 +512,8 @@ export default function Ventas() {
               </div>
             </div>
 
-            {/* Botón procesar (fijo abajo) */}
-            <div className="px-5 py-4 border-t border-gray-100 bg-white">
+            {/* BOTÓN PROCESAR CON MARGEN INFERIOR PARA LA NAVBAR */}
+            <div className="px-5 py-4 pb-8 border-t border-gray-100 bg-white">
               <button
                 onClick={handleProcessSale}
                 disabled={cart.length === 0 || (paymentMethod === 'installment' && !selectedCustomerId)}
@@ -540,7 +529,6 @@ export default function Ventas() {
   );
 }
 
-// Función auxiliar para generar número de recibo
 async function generateReceiptNumber(): Promise<string> {
   const today = new Date();
   const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
