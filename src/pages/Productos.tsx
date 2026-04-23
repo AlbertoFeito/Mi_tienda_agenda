@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Search, Plus, X, Package, Filter, Camera, ChevronDown } from 'lucide-react';
+import { Search, Plus, X, Package, Camera } from 'lucide-react';
 import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
 import type { Product, ProductType, Currency } from '@/types';
@@ -42,7 +42,7 @@ export default function Productos() {
 
   return (
     <div className="flex flex-col h-full bg-[#F8FAFC]">
-      {/* Header con botón de agregar */}
+      {/* Header con botón de agregar en el título */}
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -159,7 +159,7 @@ export default function Productos() {
 }
 
 function ProductForm({ product, onBack }: { product: Product | null; onBack: () => void }) {
-  const { showToast } = useApp();
+  const { formatPrice, showToast } = useApp();
   const [name, setName] = useState(product?.name || '');
   const [category, setCategory] = useState(product?.category || '');
   const [customCategory, setCustomCategory] = useState('');
@@ -178,7 +178,6 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
 
   const categories = useMemo(() => {
     const all = new Set<string>();
-    // En una app real, esto vendría de la base de datos
     ['Comida', 'Bebida', 'Limpieza', 'Higiene', 'Otro'].forEach(c => all.add(c));
     return Array.from(all);
   }, []);
@@ -251,7 +250,6 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
     }
   };
 
-  // Calcular precio de venta sugerido para productos ajenos
   const suggestedSalePrice = useMemo(() => {
     if (type !== 'consignment' || costPrice <= 0) return 0;
     return costPrice * (1 + profitPercent / 100);
