@@ -408,11 +408,16 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
               const installmentAmount = inst.totalAmount / inst.numberOfPayments;
               const progress = (inst.paidAmount / inst.totalAmount) * 100;
 
-              let nextDate = new Date(inst.startDate);
-              const freqDays = inst.frequency === 'weekly' ? 7 : inst.frequency === 'biweekly' ? 14 : 30;
-              for (let i = 0; i < nextNum - 1; i++) {
-                nextDate = new Date(nextDate.getTime() + freqDays * 24 * 60 * 60 * 1000);
+               let nextDate = new Date(inst.startDate);
+              const freqDays = inst.frequency === 'weekly' ? 7 : inst.frequency === 'biweekly' ? 15 : 30;
+              for (let i = 0; i < nextNum; i++) {
+                if (inst.frequency === 'monthly') {
+                  nextDate.setMonth(nextDate.getMonth() + 1);
+                } else {
+                  nextDate.setDate(nextDate.getDate() + freqDays);
+                }
               }
+
               const isOverdue = nextDate < new Date();
 
               return (
