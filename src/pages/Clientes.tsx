@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { db } from '@/lib/db';
@@ -523,12 +523,13 @@ function PaymentForm({ installment, onClose, onPay }: {
   onPay: (installmentId: number, amount: number, method: PaymentMethod) => void;
 }) {
   const { formatPrice } = useApp();
-  const [amount, setAmount] = useState(installment.totalAmount / installment.numberOfPayments);
+  const [amount, setAmount] = useState(0);
   const [method, setMethod] = useState<PaymentMethod>('cash');
+  const maxAmount = installment.totalAmount / installment.numberOfPayments;
 
-  const instPayments = useLiveQuery(() => db.installmentPayments.where('installmentId').equals(installment.id).toArray(), []);
-  const nextNum = (instPayments?.length || 0) + 1;
-  const maxAmount = installment.remainingAmount;
+  useEffect(() => {
+    if (amount === 0) setAmount(maxAmount);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[200] flex items-end justify-center">
@@ -566,7 +567,11 @@ function PaymentForm({ installment, onClose, onPay }: {
             </div>
           </div>
           <button
-            onClick={() => onPay(installment.id, amount, method)}
+            onClick={() => {
+              if (installment.id) {
+                onPay(installment.id, amount, method);
+              }
+            }}
             className="w-full h-14 bg-[#0F766E] text-white rounded-xl font-semibold active:scale-[0.98] transition-transform"
           >
             Confirmar Pago
