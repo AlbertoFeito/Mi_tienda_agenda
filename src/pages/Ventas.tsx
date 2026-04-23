@@ -67,12 +67,26 @@ export default function Ventas() {
     return () => window.removeEventListener('resize', handleResize);
   }, [checkoutOpen]);
 
+  // ✅ VALIDACIÓN DE STOCK AL AGREGAR AL CARRITO
   const addToCart = (product: Product) => {
+    if (product.stock <= 0) {
+      showToast('Producto sin stock disponible', 'warning');
+      return;
+    }
+    
     setCart(prev => {
       const existing = prev.find(item => item.productId === product.id);
+      const currentQty = existing ? existing.quantity : 0;
+      
+      // Validar que no se exceda el stock disponible
+      if (currentQty + 1 > product.stock) {
+        showToast(`Solo quedan ${product.stock} unidades en stock`, 'warning');
+        return prev;
+      }
+      
       if (existing) {
-        return prev.map(item => 
-          item.productId === product.id 
+        return prev.map(item =>
+          item.productId === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
@@ -87,10 +101,16 @@ export default function Ventas() {
     });
   };
 
+  // ✅ VALIDACIÓN DE STOCK AL ACTUALIZAR CANTIDAD
   const updateQuantity = (productId: number, delta: number) => {
     setCart(prev => prev.map(item => {
       if (item.productId === productId) {
         const newQty = Math.max(1, item.quantity + delta);
+        const product = products.find(p => p.id === productId);
+        if (product && newQty > product.stock) {
+          showToast(`Solo quedan ${product.stock} unidades`, 'warning');
+          return item;
+        }
         return { ...item, quantity: newQty };
       }
       return item;
@@ -103,8 +123,18 @@ export default function Ventas() {
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
 
+  // ✅ VALIDACIÓN DE STOCK FINAL ANTES DE PROCESAR VENTA
   const handleProcessSale = async () => {
     if (cart.length === 0) return;
+    
+    // Validar stock antes de procesar
+    for (const item of cart) {
+      const product = products.find(p => p.id === item.productId);
+      if (!product || product.stock < item.quantity) {
+        showToast(`Stock insuficiente para ${item.productName}`, 'error');
+        return;
+      }
+    }
     
     try {
       const saleItems = cart.map(item => ({
@@ -233,7 +263,12 @@ export default function Ventas() {
               <button
                 key={product.id}
                 onClick={() => addToCart(product)}
-                className="w-full flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm text-left active:bg-[#F1F5F9] transition-colors"
+                disabled={product.stock <= 0}
+                className={`w-full flex items-center gap-3 rounded-xl p-3 shadow-sm text-left transition-colors ${
+                  product.stock <= 0 
+                    ? 'bg-gray-100 opacity-60 cursor-not-allowed' 
+                    : 'bg-white active:bg-[#F1F5F9]'
+                }`}
                 style={{ animationDelay: `${i * 30}ms` }}
               >
                 {product.image ? (
@@ -251,8 +286,8 @@ export default function Ventas() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-[#0F766E]">
-                    {formatPrice(product.salePrice, product.saleCurrency)}
+                  <p className={`font-semibold ${product.stock <= 0 ? 'text-gray-400' : 'text-[#0F766E]'}`}>
+                    {product.stock <= 0 ? 'Sin stock' : formatPrice(product.salePrice, product.saleCurrency)}
                   </p>
                 </div>
               </button>
@@ -274,7 +309,7 @@ export default function Ventas() {
         </button>
       )}
 
-      {/* Checkout Bottom Sheet - Z-INDEX ELEVADO A 100 */}
+      {/* Checkout Bottom Sheet */}
       {checkoutOpen && (
         <>
           <div 
@@ -296,7 +331,6 @@ export default function Ventas() {
               <p className="text-sm text-gray-500">{cartCount} productos</p>
             </div>
 
-            {/* CONTENIDO SCROLLEABLE */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               {/* Items del carrito */}
               <div className="space-y-3">
@@ -511,11 +545,9 @@ export default function Ventas() {
                 </div>
               </div>
               
-              {/* ESPACIO EXTRA AL FINAL DEL CONTENIDO SCROLLEABLE */}
               <div className="h-20" />
             </div>
 
-            {/* BOTÓN PROCESAR - AHORA ES STICKY/FIJO DENTRO DEL SHEET */}
             <div className="px-5 py-4 border-t border-gray-100 bg-white shrink-0">
               <button
                 onClick={handleProcessSale}
