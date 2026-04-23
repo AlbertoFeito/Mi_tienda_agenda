@@ -36,9 +36,13 @@ export default function Clientes() {
         if (nextNum > inst.numberOfPayments) return false;
         const start = new Date(inst.startDate);
         let nextDate = new Date(start);
-        const freqDays = inst.frequency === 'weekly' ? 7 : inst.frequency === 'biweekly' ? 14 : 30;
-        for (let i = 0; i < nextNum - 1; i++) {
-          nextDate = new Date(nextDate.getTime() + freqDays * 24 * 60 * 60 * 1000);
+        const freqDays = inst.frequency === 'weekly' ? 7 : inst.frequency === 'biweekly' ? 15 : 30;
+        for (let i = 0; i < nextNum; i++) {
+          if (inst.frequency === 'monthly') {
+            nextDate.setMonth(nextDate.getMonth() + 1);
+          } else {
+            nextDate.setDate(nextDate.getDate() + freqDays);
+          }
         }
         return nextDate < new Date();
       });
@@ -96,11 +100,20 @@ export default function Clientes() {
 
   return (
     <div className="animate-fade-in-up">
-      <h2 className="text-xl font-bold mb-3">Clientes</h2>
+      {/* Header con botón de agregar */}
+      <div className="flex items-center justify-between mb-3 px-4 pt-4">
+        <h2 className="text-xl font-bold">Clientes</h2>
+        <button
+          onClick={() => openForm()}
+          className="w-10 h-10 bg-[#0F766E] text-white rounded-full shadow-sm flex items-center justify-center active:scale-90 transition-transform"
+        >
+          <Plus size={20} />
+        </button>
+      </div>
 
       {/* Search */}
-      <div className="relative mb-2">
-        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+      <div className="relative mb-2 px-4">
+        <Search size={18} className="absolute left-7 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
         <input
           type="text"
           value={searchQuery}
@@ -109,14 +122,14 @@ export default function Clientes() {
           className="w-full h-12 pl-10 pr-4 rounded-xl border border-[#E2E8F0] bg-white text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
         />
         {searchQuery && (
-          <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8]">
+          <button onClick={() => setSearchQuery('')} className="absolute right-7 top-1/2 -translate-y-1/2 text-[#94A3B8]">
             <X size={18} />
           </button>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-[#F1F5F9] rounded-lg p-1 mb-3">
+      <div className="flex bg-[#F1F5F9] rounded-lg p-1 mb-3 mx-4">
         {([
           { key: 'active', label: 'Activos' },
           { key: 'all', label: 'Todos' },
@@ -135,7 +148,7 @@ export default function Clientes() {
       </div>
 
       {/* List */}
-      <div className="space-y-2 pb-20">
+      <div className="space-y-2 pb-20 px-4">
         {filteredCustomers.length === 0 ? (
           <div className="text-center py-12">
             <User size={40} className="mx-auto text-[#94A3B8] mb-2" />
@@ -187,13 +200,7 @@ export default function Clientes() {
         )}
       </div>
 
-      {/* FAB */}
-      <button
-        onClick={() => openForm()}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-[#0F766E] text-white rounded-full shadow-lg flex items-center justify-center z-[150] active:scale-90 transition-transform"
-      >
-        <Plus size={24} />
-      </button>
+      {/* FAB ELIMINADO - ahora está en el header */}
     </div>
   );
 }
@@ -235,14 +242,14 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
 
   return (
     <div className="animate-fade-in-up">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 px-4 pt-4">
         <button onClick={onBack} className="p-2 rounded-lg active:bg-[#F1F5F9]">
           <X size={20} className="text-[#475569]" />
         </button>
         <h2 className="text-lg font-semibold">{customer ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
       </div>
 
-      <div className="space-y-4 pb-8">
+      <div className="space-y-4 pb-8 px-4">
         <div>
           <label className="text-sm font-medium text-[#475569] block mb-1">Nombre completo *</label>
           <input
@@ -342,7 +349,7 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
 
   return (
     <div className="animate-fade-in-up">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 px-4 pt-4">
         <button onClick={onBack} className="p-2 rounded-lg active:bg-[#F1F5F9]">
           <X size={20} className="text-[#475569]" />
         </button>
@@ -353,7 +360,7 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
       </div>
 
       {/* Info Card */}
-      <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-4 mx-4 space-y-3">
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
             <p className="text-xs text-[#94A3B8]">Comprado</p>
@@ -378,7 +385,7 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-[#F1F5F9] rounded-lg p-1 mb-3">
+      <div className="flex bg-[#F1F5F9] rounded-lg p-1 mb-3 mx-4">
         <button
           onClick={() => setDetailTab('debts')}
           className={`flex-1 py-2 text-xs font-semibold rounded-md transition-colors ${detailTab === 'debts' ? 'bg-white text-[#0F766E] shadow-sm' : 'text-[#475569]'}`}
@@ -395,7 +402,7 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
 
       {/* Debts Tab */}
       {detailTab === 'debts' && (
-        <div className="space-y-2 pb-4">
+        <div className="space-y-2 pb-4 px-4">
           {installments.filter(i => i.status === 'active').length === 0 ? (
             <div className="text-center py-8">
               <CheckCircle size={32} className="mx-auto text-[#059669] mb-2" />
@@ -408,7 +415,7 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
               const installmentAmount = inst.totalAmount / inst.numberOfPayments;
               const progress = (inst.paidAmount / inst.totalAmount) * 100;
 
-               let nextDate = new Date(inst.startDate);
+              let nextDate = new Date(inst.startDate);
               const freqDays = inst.frequency === 'weekly' ? 7 : inst.frequency === 'biweekly' ? 15 : 30;
               for (let i = 0; i < nextNum; i++) {
                 if (inst.frequency === 'monthly') {
@@ -417,7 +424,6 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
                   nextDate.setDate(nextDate.getDate() + freqDays);
                 }
               }
-
               const isOverdue = nextDate < new Date();
 
               return (
@@ -471,7 +477,7 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
 
       {/* Payments Tab */}
       {detailTab === 'payments' && (
-        <div className="space-y-2 pb-4">
+        <div className="space-y-2 pb-4 px-4">
           {payments.filter(p => installments.some(i => i.id === p.installmentId)).length === 0 ? (
             <div className="text-center py-8">
               <CreditCard size={32} className="mx-auto text-[#94A3B8] mb-2" />
@@ -481,27 +487,27 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
             payments
               .filter(p => installments.some(i => i.id === p.installmentId))
               .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
-              .map(payment => (
-                <div key={payment.id} className="bg-white rounded-xl p-3 shadow-sm flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-[#D1FAE5] flex items-center justify-center">
-                      <CheckCircle size={14} className="text-[#059669]" />
-                    </div>
+              .map(payment => {
+                const inst = installments.find(i => i.id === payment.installmentId);
+                return (
+                  <div key={payment.id} className="bg-white rounded-xl p-3 shadow-sm flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium">{formatPrice(payment.amount, 'CUP')}</p>
-                      <p className="text-xs text-[#94A3B8]">{new Date(payment.paymentDate).toLocaleDateString('es-CU')}</p>
+                      <p className="text-sm font-medium">Cuota pagada</p>
+                      <p className="text-xs text-[#94A3B8]">
+                        {inst ? `Venta #${inst.saleId}` : 'Venta'} · {new Date(payment.paymentDate).toLocaleDateString('es-CU')}
+                      </p>
                     </div>
+                    <span className="text-sm font-bold text-[#059669]">{formatPrice(payment.amount, 'CUP')}</span>
                   </div>
-                  <span className="text-xs text-[#475569] capitalize">{payment.paymentMethod === 'cash' ? 'Efectivo' : payment.paymentMethod === 'transfer' ? 'Transferencia' : 'Plazos'}</span>
-                </div>
-              ))
+                );
+              })
           )}
         </div>
       )}
 
       {/* Payment Form Modal */}
       {showPaymentForm && selectedInstallment && (
-        <PaymentFormModal
+        <PaymentForm
           installment={selectedInstallment}
           onClose={() => { setShowPaymentForm(false); setSelectedInstallment(null); }}
           onPay={handlePayment}
@@ -511,63 +517,57 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
   );
 }
 
-function PaymentFormModal({ installment, onClose, onPay }: {
+function PaymentForm({ installment, onClose, onPay }: {
   installment: Installment;
   onClose: () => void;
-  onPay: (id: number, amount: number, method: PaymentMethod) => void;
+  onPay: (installmentId: number, amount: number, method: PaymentMethod) => void;
 }) {
   const { formatPrice } = useApp();
-  const [amount, setAmount] = useState(Math.round((installment.totalAmount / installment.numberOfPayments) * 100) / 100);
+  const [amount, setAmount] = useState(installment.totalAmount / installment.numberOfPayments);
   const [method, setMethod] = useState<PaymentMethod>('cash');
 
-  const remaining = installment.remainingAmount;
-  const suggestedAmount = Math.min(amount, remaining);
+  const instPayments = useLiveQuery(() => db.installmentPayments.where('installmentId').equals(installment.id).toArray(), []);
+  const nextNum = (instPayments?.length || 0) + 1;
+  const maxAmount = installment.remainingAmount;
 
   return (
-    <div className="fixed inset-0 z-[300] flex flex-col justify-end">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-t-2xl p-4 animate-slide-up">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Registrar Pago</h3>
-          <button onClick={onClose}><X size={22} className="text-[#475569]" /></button>
+    <div className="fixed inset-0 z-[200] flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up">
+        <div className="flex justify-center mb-3">
+          <div className="w-10 h-1 bg-gray-300 rounded-full" />
         </div>
-
+        <h3 className="text-lg font-semibold mb-4">Registrar Pago</h3>
         <div className="space-y-4">
-          <div className="bg-[#F8FAFC] rounded-lg p-3">
-            <p className="text-xs text-[#94A3B8]">Deuda restante</p>
-            <p className="text-lg font-bold text-[#0F172A]">{formatPrice(remaining, 'CUP')}</p>
-          </div>
-
           <div>
-            <label className="text-sm font-medium text-[#475569] block mb-1">Monto a pagar</label>
+            <label className="text-sm font-medium text-[#475569] block mb-1">Monto (CUP)</label>
             <input
               type="number"
-              value={suggestedAmount || ''}
-              onChange={(e) => setAmount(Number(e.target.value))}
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
+              value={amount}
+              onChange={(e) => setAmount(Math.min(maxAmount, Math.max(0, Number(e.target.value))))}
+              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] outline-none"
             />
+            <p className="text-xs text-[#94A3B8] mt-1">Máximo: {formatPrice(maxAmount, 'CUP')}</p>
           </div>
-
           <div>
-            <label className="text-sm font-medium text-[#475569] block mb-1">Método de pago</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['cash', 'transfer'] as PaymentMethod[]).map(m => (
+            <label className="text-sm font-medium text-[#475569] block mb-1">Método</label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['cash', 'transfer', 'installment'] as PaymentMethod[]).map(m => (
                 <button
                   key={m}
                   onClick={() => setMethod(m)}
-                  className={`h-10 rounded-lg text-sm font-medium transition-colors ${
-                    method === m ? 'bg-[#0F766E] text-white' : 'bg-[#F1F5F9] text-[#475569]'
+                  className={`py-2 rounded-lg text-xs font-medium border-2 ${
+                    method === m ? 'border-[#0F766E] bg-[#0F766E]/5 text-[#0F766E]' : 'border-gray-200 text-gray-600'
                   }`}
                 >
-                  {m === 'cash' ? 'Efectivo' : 'Transferencia'}
+                  {m === 'cash' ? 'Efectivo' : m === 'transfer' ? 'Transferencia' : 'A plazos'}
                 </button>
               ))}
             </div>
           </div>
-
           <button
-            onClick={() => onPay(installment.id!, suggestedAmount, method)}
-            className="w-full h-14 bg-[#059669] text-white rounded-xl font-semibold active:scale-[0.98] transition-transform"
+            onClick={() => onPay(installment.id, amount, method)}
+            className="w-full h-14 bg-[#0F766E] text-white rounded-xl font-semibold active:scale-[0.98] transition-transform"
           >
             Confirmar Pago
           </button>
