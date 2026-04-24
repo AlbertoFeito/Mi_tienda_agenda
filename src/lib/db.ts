@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import type { Product, Sale, Customer, Installment, InstallmentPayment, AppSettings } from '@/types';
 
-export class MiTiendaDB extends Dexie {
+export class MiVentaDB extends Dexie {
   products!: Table<Product>;
   sales!: Table<Sale>;
   customers!: Table<Customer>;
@@ -10,7 +10,7 @@ export class MiTiendaDB extends Dexie {
   settings!: Table<AppSettings>;
 
   constructor() {
-    super('MiTiendaDB');
+    super('MiVentaDB');
     this.version(1).stores({
       products: '++id, name, category, type, stock, createdAt',
       sales: '++id, paymentMethod, customerId, createdAt, receiptNumber',
@@ -22,7 +22,7 @@ export class MiTiendaDB extends Dexie {
   }
 }
 
-export const db = new MiTiendaDB();
+export const db = new MiVentaDB();
 
 export async function initDatabase(): Promise<void> {
   const count = await db.settings.count();
