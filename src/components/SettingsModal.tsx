@@ -30,7 +30,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
   const handleExport = async () => {
     try {
       const data = await exportData();
-      const blob = new Blob([data], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -48,7 +48,8 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
     if (!file) return;
     try {
       const text = await file.text();
-      await importData(text);
+      const data = JSON.parse(text);
+      await importData(data);
       showToast('Datos importados correctamente', 'success');
     } catch {
       showToast('Error al importar datos', 'error');

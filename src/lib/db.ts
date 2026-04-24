@@ -29,10 +29,14 @@ export async function initDatabase(): Promise<void> {
   if (count === 0) {
     await db.settings.add({
       storeName: 'Mi Tienda',
-      currency: 'CUP',
+      primaryCurrency: 'CUP',
       usdRate: 320,
       eurRate: 350,
       mlcRate: 300,
+      address: '',
+      phone: '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
   }
 }
