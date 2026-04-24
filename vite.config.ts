@@ -3,9 +3,11 @@ import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { VitePWA } from 'vite-plugin-pwa'
 
+const base = process.env.BASE_URL || './'
+
 // https://vite.dev/config/
 export default defineConfig({
-  base: './',
+  base,
   plugins: [
     react(),
     VitePWA({
