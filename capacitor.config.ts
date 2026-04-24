@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.mitienda.app',
+  appId: 'com.mitiendaagenda.app',
   appName: 'Mi Tienda',
   webDir: 'dist',
   bundledWebRuntime: false,

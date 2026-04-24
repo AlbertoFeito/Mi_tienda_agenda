@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 // Trigger workflow for Android APK build
 
 android {
-    namespace = "com.mitienda.app"
+    namespace = "com.mitiendaagenda.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.mitienda.app"
