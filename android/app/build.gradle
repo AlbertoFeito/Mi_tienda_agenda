@@ -3,10 +3,10 @@ apply plugin: 'com.android.application'
 // Trigger workflow for Android APK build
 
 android {
-    namespace = "com.mitiendav2.app"
+    namespace = "com.miventa.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.mitienda.app"
+        applicationId "com.miventa.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
