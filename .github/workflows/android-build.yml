@@ -39,7 +39,9 @@ jobs:
         run: npx capacitor sync android
 
       - name: Build Android APK
-        run: cd android && ./gradlew assembleRelease
+        run: |
+          chmod +x android/gradlew
+          cd android && ./gradlew assembleRelease
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
