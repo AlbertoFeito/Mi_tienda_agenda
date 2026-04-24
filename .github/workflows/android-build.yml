@@ -28,11 +28,10 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-            - name: Install dependencies
+      - name: Install dependencies
         run: |
           npm config set legacy-peer-deps true
           npm ci
-        
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
