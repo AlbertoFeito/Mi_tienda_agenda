@@ -24,6 +24,12 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temu'
+
       - name: Install dependencies
         run: |
           npm config set legacy-peer-deps true
