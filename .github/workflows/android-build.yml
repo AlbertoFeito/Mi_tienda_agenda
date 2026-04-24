@@ -3,10 +3,6 @@ name: Build Android APK
 on:
   push:
     branches: [master]
-    paths:
-      - 'android/**'
-      - 'capacitor.config.ts'
-      - 'package.json'
   workflow_dispatch:
 
 permissions:
