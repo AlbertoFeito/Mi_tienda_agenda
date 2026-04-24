@@ -4,10 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.miventa.app',
   appName: 'MiVenta',
   webDir: 'dist',
-  bundledWebRuntime: false,
-  server: {
-    androidScheme: 'https'
-  }
+  bundledWebRuntime: true
 };
 
 export default config;

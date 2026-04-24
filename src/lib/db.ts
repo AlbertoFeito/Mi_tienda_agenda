@@ -29,33 +29,26 @@ export async function initDatabase(): Promise<void> {
   if (count === 0) {
     await db.settings.add({
       storeName: 'Mi Tienda',
-      address: '',
-      phone: '',
-      primaryCurrency: 'CUP',
+      currency: 'CUP',
       usdRate: 320,
       eurRate: 350,
       mlcRate: 300,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
   }
 }
 
-export async function exportData(): Promise<string> {
-  const data = {
+export async function exportData() {
+  return {
     products: await db.products.toArray(),
     sales: await db.sales.toArray(),
     customers: await db.customers.toArray(),
     installments: await db.installments.toArray(),
     installmentPayments: await db.installmentPayments.toArray(),
     settings: await db.settings.toArray(),
-    exportDate: new Date().toISOString(),
   };
-  return JSON.stringify(data, null, 2);
 }
 
-export async function importData(jsonString: string): Promise<void> {
-  const data = JSON.parse(jsonString);
+export async function importData(data: any) {
   await db.transaction('rw', [db.products, db.sales, db.customers, db.installments, db.installmentPayments, db.settings], async () => {
     await db.products.clear();
     await db.sales.clear();
@@ -73,19 +66,12 @@ export async function importData(jsonString: string): Promise<void> {
   });
 }
 
-export async function clearAllData(): Promise<void> {
+export async function clearAllData() {
   await db.delete();
-  window.location.reload();
+  await db.open();
 }
 
-let receiptCounter = 0;
 export async function generateReceiptNumber(): Promise<string> {
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
-  receiptCounter++;
-  const count = await db.sales.where('createdAt').between(
-    new Date(today.getFullYear(), today.getMonth(), today.getDate()),
-    new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-  ).count();
-  return `VT-${dateStr}-${String(count + 1).padStart(3, '0')}`;
+  const count = await db.sales.count();
+  return `MV${String(count + 1).padStart(6, '0')}`;
 }
