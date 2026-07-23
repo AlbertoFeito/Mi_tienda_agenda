@@ -118,7 +118,7 @@ describe('Types', () => {
 
       expect(sale.items).toHaveLength(1);
       expect(sale.paymentMethod).toBe('cash');
-      expect(sale.receiptNumber).toMatch(/^VT-\d{6}-\d{3}$/);
+      expect(sale.receiptNumber).toMatch(/^VT-\d{8}-\d{3}$/);
     });
   });
 

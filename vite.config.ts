@@ -5,7 +5,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/Mi_tienda_agenda/',
+  // Relative base so the bundle loads from the native WebView (Capacitor)
+  // and from any static host.
+  base: './',
   plugins: [
     react(),
     VitePWA({

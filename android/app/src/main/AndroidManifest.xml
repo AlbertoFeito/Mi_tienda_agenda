@@ -35,12 +35,10 @@
         </provider>
     </application>
 
-    <!-- Permissions -->
+    <!--
+      This is a fully offline, single-user app. Data is stored locally in an
+      on-device SQLite database. No network access is requested, so the app
+      cannot reach the internet at all.
+    -->
 
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 </manifest>

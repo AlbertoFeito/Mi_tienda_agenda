@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useCallback, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useLiveQuery } from '@/lib/live';
 import { db } from '@/lib/db';
 import type { AppSettings, Currency } from '@/types';
 
