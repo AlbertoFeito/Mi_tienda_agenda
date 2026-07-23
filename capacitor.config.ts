@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.mitienda.app',
-  appName: 'Mi Tienda',
+  appId: 'com.nayadestore.app',
+  appName: 'NayadeStore',
   webDir: 'dist',
   android: {
     // Fully offline, single-user app — no cleartext HTTP traffic needed.

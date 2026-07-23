@@ -1,6 +1,6 @@
 {
-  "name": "Mi Tienda",
-  "short_name": "MiTienda",
+  "name": "NayadeStore",
+  "short_name": "NayadeStore",
   "description": "Sistema de gestión comercial para pequeños negocios",
   "start_url": ".",
   "display": "standalone",

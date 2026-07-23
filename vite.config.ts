@@ -15,8 +15,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Mi Tienda',
-        short_name: 'MiTienda',
+        name: 'NayadeStore',
+        short_name: 'NayadeStore',
         description: 'Tienda multimoneda offline',
         theme_color: '#0F766E',
         background_color: '#ffffff',
