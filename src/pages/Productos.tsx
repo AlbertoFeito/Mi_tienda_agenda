@@ -3,6 +3,8 @@ import { useLiveQuery } from '@/lib/live';
 import { Search, Plus, X, Package, Camera } from 'lucide-react';
 import { db } from '@/lib/db';
 import { pickProductImage } from '@/lib/camera';
+import { useBackHandler } from '@/lib/backHandler';
+import NumberField from '@/components/NumberField';
 import { useApp } from '@/contexts/AppContext';
 import type { Product, ProductType, Currency } from '@/types';
 
@@ -177,6 +179,8 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
   const [ownerContact, setOwnerContact] = useState(product?.ownerContact || '');
   const [profitPercent, setProfitPercent] = useState(20);
 
+  useBackHandler(onBack);
+
   const categories = useMemo(() => {
     const all = new Set<string>();
     ['Comida', 'Bebida', 'Limpieza', 'Higiene', 'Otro'].forEach(c => all.add(c));
@@ -347,13 +351,7 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-sm font-medium text-[#475569] block mb-1">Precio de Costo *</label>
-            <input
-              type="number"
-              value={costPrice || ''}
-              onChange={(e) => setCostPrice(Number(e.target.value))}
-              placeholder="0.00"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-            />
+            <NumberField value={costPrice} onChange={setCostPrice} decimals placeholder="0.00" />
           </div>
           <div>
             <label className="text-sm font-medium text-[#475569] block mb-1">Mon.</label>
@@ -373,13 +371,7 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-sm font-medium text-[#475569] block mb-1">Precio de Venta *</label>
-            <input
-              type="number"
-              value={salePrice || ''}
-              onChange={(e) => setSalePrice(Number(e.target.value))}
-              placeholder="0.00"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-            />
+            <NumberField value={salePrice} onChange={setSalePrice} decimals placeholder="0.00" />
           </div>
           <div>
             <label className="text-sm font-medium text-[#475569] block mb-1">Mon.</label>
@@ -400,12 +392,7 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
           <div className="bg-[#F0FDFA] rounded-xl p-3 space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-sm text-[#475569]">% Ganancia</span>
-              <input
-                type="number"
-                value={profitPercent}
-                onChange={(e) => setProfitPercent(Number(e.target.value))}
-                className="w-20 h-10 px-2 rounded-lg border border-[#E2E8F0] text-sm"
-              />
+              <NumberField value={profitPercent} onChange={setProfitPercent} min={0} max={500} step={5} className="w-44" />
             </div>
             <p className="text-sm font-medium text-[#0F766E]">
               Precio sugerido: {formatPrice(suggestedSalePrice, costCurrency)}
@@ -417,23 +404,11 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-sm font-medium text-[#475569] block mb-1">Stock *</label>
-            <input
-              type="number"
-              value={stock}
-              onChange={(e) => setStock(Number(e.target.value))}
-              placeholder="0"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-            />
+            <NumberField value={stock} onChange={setStock} placeholder="0" />
           </div>
           <div>
             <label className="text-sm font-medium text-[#475569] block mb-1">Stock Mínimo</label>
-            <input
-              type="number"
-              value={minStock}
-              onChange={(e) => setMinStock(Number(e.target.value))}
-              placeholder="5"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-            />
+            <NumberField value={minStock} onChange={setMinStock} placeholder="5" />
           </div>
         </div>
 

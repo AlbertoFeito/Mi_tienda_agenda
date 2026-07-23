@@ -90,6 +90,8 @@ export interface AppSettings {
   usdRate: number;
   eurRate: number;
   mlcRate: number;
+  /** Salted SHA-256 hash of the app PIN ("salt$hash"). Undefined until set. */
+  pinHash?: string;
   createdAt: Date;
   updatedAt: Date;
 }

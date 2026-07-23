@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLiveQuery } from '@/lib/live';
 import { Search, X, ShoppingCart, Minus, Plus, Trash2, CreditCard, Banknote, Repeat, ChevronDown, User, Package } from 'lucide-react';
 import { db } from '@/lib/db';
+import NumberField from '@/components/NumberField';
 import { useApp } from '@/contexts/AppContext';
 import type { Product, CartItem, PaymentMethod, Currency } from '@/types';
 
@@ -518,13 +519,7 @@ export default function Ventas() {
               {/* Descuento */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Descuento (CUP)</label>
-                <input
-                  type="number"
-                  value={discount || ''}
-                  onChange={(e) => setDiscount(Number(e.target.value))}
-                  placeholder="0.00"
-                  className="w-full h-12 px-3 rounded-xl border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-                />
+                <NumberField value={discount} onChange={setDiscount} decimals placeholder="0.00" />
               </div>
 
               {/* Totales */}

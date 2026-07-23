@@ -2,6 +2,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { useLiveQuery } from '@/lib/live';
 import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { db } from '@/lib/db';
+import { useBackHandler } from '@/lib/backHandler';
+import NumberField from '@/components/NumberField';
+import PhoneField, { isValidCubanPhone, normalizeCubanPhone } from '@/components/PhoneField';
 import { useApp } from '@/contexts/AppContext';
 import type { Customer, Installment, InstallmentPayment, PaymentMethod } from '@/types';
 
@@ -212,15 +215,21 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
   const [address, setAddress] = useState(customer?.address || '');
   const [notes, setNotes] = useState(customer?.notes || '');
 
+  useBackHandler(onBack);
+
   const handleSubmit = async () => {
     if (!name.trim()) {
       showToast('El nombre es obligatorio', 'error');
       return;
     }
+    if (!isValidCubanPhone(phone)) {
+      showToast('El teléfono debe tener 8 dígitos (Cuba)', 'error');
+      return;
+    }
 
     const data = {
       name: name.trim(),
-      phone: phone.trim() || undefined,
+      phone: normalizeCubanPhone(phone) || undefined,
       address: address.trim() || undefined,
       notes: notes.trim() || undefined,
       createdAt: customer?.createdAt || new Date(),
@@ -262,13 +271,7 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
         </div>
         <div>
           <label className="text-sm font-medium text-[#475569] block mb-1">Teléfono</label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Número de teléfono"
-            className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-          />
+          <PhoneField value={phone} onChange={setPhone} />
         </div>
         <div>
           <label className="text-sm font-medium text-[#475569] block mb-1">Dirección</label>
@@ -312,6 +315,8 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
   const [detailTab, setDetailTab] = useState<'debts' | 'payments'>('debts');
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState<Installment | null>(null);
+
+  useBackHandler(onBack);
 
   const totalDebt = installments.filter(i => i.status === 'active').reduce((s, i) => s + i.remainingAmount, 0);
   const totalPaid = installments.reduce((s, i) => s + i.paidAmount, 0);
@@ -527,6 +532,8 @@ function PaymentForm({ installment, onClose, onPay }: {
   const [method, setMethod] = useState<PaymentMethod>('cash');
   const maxAmount = installment.totalAmount / installment.numberOfPayments;
 
+  useBackHandler(onClose);
+
   useEffect(() => {
     if (amount === 0) setAmount(maxAmount);
   }, []);
@@ -542,12 +549,7 @@ function PaymentForm({ installment, onClose, onPay }: {
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium text-[#475569] block mb-1">Monto (CUP)</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(Math.min(maxAmount, Math.max(0, Number(e.target.value))))}
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] outline-none"
-            />
+            <NumberField value={amount} onChange={setAmount} decimals min={0} max={maxAmount} />
             <p className="text-xs text-[#94A3B8] mt-1">Máximo: {formatPrice(maxAmount, 'CUP')}</p>
           </div>
           <div>

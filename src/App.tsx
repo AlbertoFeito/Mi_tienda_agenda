@@ -1,5 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { AppProvider } from '@/contexts/AppContext';
+import AuthGate from '@/components/AuthGate';
+import BackButtonManager from '@/components/BackButtonManager';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import Toast from '@/components/Toast';
@@ -13,6 +15,7 @@ import './App.css';
 function AppLayout() {
   return (
     <div className="min-h-screen bg-[#F1F5F9] flex flex-col max-w-lg mx-auto relative">
+      <BackButtonManager />
       <Header />
       <main className="flex-1 pt-14 pb-20 px-4 overflow-y-auto">
         <Routes>
@@ -32,7 +35,9 @@ function AppLayout() {
 export default function App() {
   return (
     <AppProvider>
-      <AppLayout />
+      <AuthGate>
+        <AppLayout />
+      </AuthGate>
     </AppProvider>
   );
 }

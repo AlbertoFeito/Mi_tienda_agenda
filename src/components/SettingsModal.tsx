@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { X, Download, Upload, Trash2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { exportData, importData, clearAllData } from '@/lib/db';
+import { useBackHandler } from '@/lib/backHandler';
+import NumberField from '@/components/NumberField';
+import PhoneField, { isValidCubanPhone, normalizeCubanPhone } from '@/components/PhoneField';
 import type { Currency } from '@/types';
 
 export default function SettingsModal({ onClose }: { onClose: () => void }) {
@@ -17,13 +20,20 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  useBackHandler(onClose);
+  useBackHandler(() => { setShowDeleteModal(false); setDeleteConfirm(''); }, showDeleteModal);
+
   const handleSaveRates = async () => {
     await updateRates(usdRate, eurRate, mlcRate);
     showToast('Tasas de cambio actualizadas', 'success');
   };
 
   const handleSaveStore = async () => {
-    await updateStoreInfo({ storeName, address, phone, primaryCurrency });
+    if (!isValidCubanPhone(phone)) {
+      showToast('El teléfono debe tener 8 dígitos (Cuba)', 'error');
+      return;
+    }
+    await updateStoreInfo({ storeName, address, phone: normalizeCubanPhone(phone), primaryCurrency });
     showToast('Datos de la tienda guardados', 'success');
   };
 
@@ -99,12 +109,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
               ].map((rate) => (
                 <div key={rate.label} className="flex items-center gap-3">
                   <label className="text-sm font-medium text-[#475569] w-20">{rate.label}</label>
-                  <input
-                    type="number"
-                    value={rate.value}
-                    onChange={(e) => rate.setter(Number(e.target.value))}
-                    className="flex-1 h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-                  />
+                  <NumberField value={rate.value} onChange={rate.setter} decimals className="flex-1" />
                   <span className="text-sm text-[#94A3B8]">CUP</span>
                 </div>
               ))}
@@ -141,12 +146,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
               </div>
               <div>
                 <label className="text-sm font-medium text-[#475569] block mb-1">Teléfono</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-                />
+                <PhoneField value={phone} onChange={setPhone} />
               </div>
               <div>
                 <label className="text-sm font-medium text-[#475569] block mb-1">Moneda principal</label>
