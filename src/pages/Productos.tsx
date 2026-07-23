@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useLiveQuery } from '@/lib/live';
 import { Search, Plus, X, Package, Camera } from 'lucide-react';
 import { db } from '@/lib/db';
+import { pickProductImage } from '@/lib/camera';
 import { useApp } from '@/contexts/AppContext';
 import type { Product, ProductType, Currency } from '@/types';
 
@@ -182,12 +183,13 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
     return Array.from(all);
   }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string);
-    reader.readAsDataURL(file);
+  const handlePickImage = async () => {
+    try {
+      const img = await pickProductImage();
+      if (img) setImage(img);
+    } catch {
+      showToast('No se pudo obtener la imagen', 'error');
+    }
   };
 
   const handleSubmit = async () => {
@@ -282,15 +284,27 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
         </div>
 
         {/* Imagen */}
-        <div className="flex justify-center">
-          <label className="w-24 h-24 rounded-xl bg-gray-100 flex items-center justify-center cursor-pointer overflow-hidden border-2 border-dashed border-gray-300 active:border-[#0F766E]">
+        <div className="flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={handlePickImage}
+            className="w-24 h-24 rounded-xl bg-gray-100 flex items-center justify-center cursor-pointer overflow-hidden border-2 border-dashed border-gray-300 active:border-[#0F766E]"
+          >
             {image ? (
               <img src={image} alt="Preview" className="w-full h-full object-cover" />
             ) : (
               <Camera className="w-8 h-8 text-gray-400" />
             )}
-            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-          </label>
+          </button>
+          {image && (
+            <button
+              type="button"
+              onClick={() => setImage(undefined)}
+              className="text-xs text-[#DC2626] active:opacity-70"
+            >
+              Quitar imagen
+            </button>
+          )}
         </div>
 
         {/* Nombre */}

@@ -16,6 +16,7 @@
   "dependencies": {
     "@capacitor-community/sqlite": "^7.0.3",
     "@capacitor/android": "^7.6.8",
+    "@capacitor/camera": "^7.0.5",
     "@capacitor/cli": "^7.6.8",
     "@capacitor/core": "^7.6.8",
     "@hookform/resolvers": "^5.2.2",

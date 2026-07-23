@@ -37,8 +37,14 @@
 
     <!--
       This is a fully offline, single-user app. Data is stored locally in an
-      on-device SQLite database. No network access is requested, so the app
-      cannot reach the internet at all.
+      on-device SQLite database. No network (INTERNET) permission is requested,
+      so the app cannot reach the internet at all.
+
+      The camera permission is used only to attach a photo to a product; the
+      camera does not use the network. The gallery is accessed through the
+      Android Photo Picker, which needs no storage permission.
     -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
 </manifest>
