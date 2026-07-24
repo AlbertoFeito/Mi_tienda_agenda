@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { useLiveQuery } from '@/lib/live';
 import { db } from '@/lib/db';
@@ -6,17 +6,24 @@ import { setPin, verifyPin } from '@/lib/auth';
 import { biometricAvailable, biometricAuthenticate } from '@/lib/biometric';
 import LockScreen from '@/components/LockScreen';
 
+// Only re-lock after the app has been in the background for at least this long.
+// Brief interruptions — including the biometric prompt itself, which briefly
+// backgrounds the app — must not re-lock, otherwise the fingerprint dialog
+// would keep popping up.
+const LOCK_AFTER_MS = 30_000;
+
 /**
- * Gates the whole app behind a single-user PIN.
+ * Gates the whole app behind a single-user PIN (with optional fingerprint).
  *
  * - No PIN yet  -> ask the user to create one.
  * - PIN set     -> require it to unlock.
- * - Re-locks when the app goes to the background, so reopening asks again.
+ * - Re-locks only after a real stay in the background (see LOCK_AFTER_MS).
  */
 export default function AuthGate({ children }: { children: ReactNode }) {
   const settings = useLiveQuery(() => db.settings.toArray().then((s) => s[0]), []);
   const [unlocked, setUnlocked] = useState(false);
   const [canBiometric, setCanBiometric] = useState(false);
+  const promptedRef = useRef(false);
 
   // Detect biometric availability when it's enabled in settings.
   useEffect(() => {
@@ -24,9 +31,18 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     else setCanBiometric(false);
   }, [settings?.biometricEnabled]);
 
-  // Auto-prompt biometrics whenever the app is locked and biometrics are on.
+  // Arm the fingerprint sensor once per lock: while locked, show the biometric
+  // prompt a single time so a touch on the sensor unlocks. If the user cancels
+  // or it fails, we don't re-prompt automatically (they can tap "Usar huella"
+  // or type the PIN).
   useEffect(() => {
-    if (unlocked || !settings?.pinHash || !settings?.biometricEnabled || !canBiometric) return;
+    if (unlocked) {
+      promptedRef.current = false;
+      return;
+    }
+    if (!settings?.pinHash || !settings?.biometricEnabled || !canBiometric) return;
+    if (promptedRef.current) return;
+    promptedRef.current = true;
     let active = true;
     biometricAuthenticate().then((ok) => {
       if (active && ok) setUnlocked(true);
@@ -36,14 +52,25 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     };
   }, [unlocked, settings?.pinHash, settings?.biometricEnabled, canBiometric]);
 
-  // Re-lock whenever the app is backgrounded (native only).
+  // Re-lock only after a genuine background stay, not on every brief pause.
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     let remove: (() => void) | undefined;
+    let backgroundedAt = 0;
     import('@capacitor/app').then(({ App }) => {
-      App.addListener('pause', () => setUnlocked(false)).then((handle) => {
-        remove = () => handle.remove();
+      const pausePromise = App.addListener('pause', () => {
+        backgroundedAt = Date.now();
       });
+      const resumePromise = App.addListener('resume', () => {
+        if (backgroundedAt && Date.now() - backgroundedAt > LOCK_AFTER_MS) {
+          setUnlocked(false);
+        }
+        backgroundedAt = 0;
+      });
+      remove = () => {
+        pausePromise.then((h) => h.remove());
+        resumePromise.then((h) => h.remove());
+      };
     });
     return () => remove?.();
   }, []);
