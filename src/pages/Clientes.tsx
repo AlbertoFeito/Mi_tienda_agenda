@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useLiveQuery } from '@/lib/live';
-import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle, MessageSquare, MessageCircle } from 'lucide-react';
 import { db } from '@/lib/db';
 import { useBackHandler } from '@/lib/backHandler';
 import NumberField from '@/components/NumberField';
 import PhoneField, { isValidCubanPhone, normalizeCubanPhone } from '@/components/PhoneField';
+import { buildReminderMessage, openSms, openWhatsApp } from '@/lib/messaging';
 import { useApp } from '@/contexts/AppContext';
 import type { Customer, Installment, InstallmentPayment, PaymentMethod } from '@/types';
 
@@ -311,12 +312,33 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
   onBack: () => void;
   onEdit: () => void;
 }) {
-  const { formatPrice, showToast } = useApp();
+  const { formatPrice, showToast, settings } = useApp();
   const [detailTab, setDetailTab] = useState<'debts' | 'payments'>('debts');
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState<Installment | null>(null);
 
   useBackHandler(onBack);
+
+  const storeName = settings?.storeName || 'NayadeStore';
+
+  const sendReminder = async (
+    kind: 'sms' | 'whatsapp',
+    amount: number,
+    dueDate: Date,
+    overdue: boolean,
+  ) => {
+    if (!customer.phone) {
+      showToast('Este cliente no tiene teléfono guardado', 'warning');
+      return;
+    }
+    const text = buildReminderMessage({ customerName: customer.name, amount, dueDate, storeName, overdue });
+    try {
+      if (kind === 'sms') await openSms(customer.phone, text);
+      else await openWhatsApp(customer.phone, text);
+    } catch {
+      showToast('No se pudo abrir la app de mensajes', 'error');
+    }
+  };
 
   const totalDebt = installments.filter(i => i.status === 'active').reduce((s, i) => s + i.remainingAmount, 0);
   const totalPaid = installments.reduce((s, i) => s + i.paidAmount, 0);
@@ -466,6 +488,25 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
                         className="px-3 py-1.5 bg-[#0F766E] text-white rounded-lg text-xs font-medium active:scale-95"
                       >
                         Pagar
+                      </button>
+                    </div>
+                  )}
+
+                  {nextNum <= inst.numberOfPayments && (
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => sendReminder('sms', installmentAmount, nextDate, isOverdue)}
+                        className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-lg border border-[#0F766E] text-[#0F766E] text-xs font-medium active:scale-[0.98] transition-transform"
+                      >
+                        <MessageSquare size={14} />
+                        Recordar SMS
+                      </button>
+                      <button
+                        onClick={() => sendReminder('whatsapp', installmentAmount, nextDate, isOverdue)}
+                        className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-lg bg-[#25D366] text-white text-xs font-medium active:scale-[0.98] transition-transform"
+                      >
+                        <MessageCircle size={14} />
+                        WhatsApp
                       </button>
                     </div>
                   )}
