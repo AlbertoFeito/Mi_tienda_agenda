@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AppProvider } from '@/contexts/AppContext';
+import { maybeAutoBackup } from '@/lib/backup';
 import AuthGate from '@/components/AuthGate';
 import BackButtonManager from '@/components/BackButtonManager';
 import Header from '@/components/Header';
@@ -13,6 +15,11 @@ import Analisis from '@/pages/Analisis';
 import './App.css';
 
 function AppLayout() {
+  // Create an automatic local backup at most once a day.
+  useEffect(() => {
+    maybeAutoBackup();
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#F1F5F9] flex flex-col max-w-lg mx-auto relative">
       <BackButtonManager />

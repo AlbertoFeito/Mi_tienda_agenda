@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, Fingerprint } from 'lucide-react';
 import PinPad from '@/components/PinPad';
 
 const PIN_LENGTH = 4;
@@ -7,13 +7,15 @@ const PIN_LENGTH = 4;
 interface LockScreenProps {
   mode: 'setup' | 'enter';
   onSubmit: (pin: string) => Promise<boolean>;
+  /** When provided (enter mode), shows a "use fingerprint" button. */
+  onBiometric?: () => void;
 }
 
 /**
  * Full-screen PIN lock. In "setup" mode it asks for the PIN twice; in "enter"
  * mode it validates against the stored PIN via `onSubmit`.
  */
-export default function LockScreen({ mode, onSubmit }: LockScreenProps) {
+export default function LockScreen({ mode, onSubmit, onBiometric }: LockScreenProps) {
   const [pin, setPin] = useState('');
   const [firstPin, setFirstPin] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -85,6 +87,16 @@ export default function LockScreen({ mode, onSubmit }: LockScreenProps) {
       <div className="h-5 mt-4">
         {error && <p className="text-sm text-amber-200">{error}</p>}
       </div>
+
+      {onBiometric && (
+        <button
+          onClick={onBiometric}
+          className="mt-2 flex items-center gap-2 text-white/90 text-sm font-medium px-4 py-2 rounded-xl bg-white/10 active:bg-white/20 transition-colors"
+        >
+          <Fingerprint size={20} />
+          Usar huella
+        </button>
+      )}
     </div>
   );
 }

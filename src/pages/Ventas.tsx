@@ -3,11 +3,14 @@ import { useLiveQuery } from '@/lib/live';
 import { Search, X, ShoppingCart, Minus, Plus, Trash2, CreditCard, Banknote, Repeat, ChevronDown, User, Package } from 'lucide-react';
 import { db } from '@/lib/db';
 import NumberField from '@/components/NumberField';
+import ReceiptModal from '@/components/ReceiptModal';
+import type { ReceiptData } from '@/lib/receipt';
 import { useApp } from '@/contexts/AppContext';
 import type { Product, CartItem, PaymentMethod, Currency } from '@/types';
 
 export default function Ventas() {
-  const { formatPrice, convertToCUP, showToast } = useApp();
+  const { formatPrice, convertToCUP, showToast, settings } = useApp();
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   const [searchQuery, setSearchQuery] = useState('');
@@ -189,6 +192,18 @@ export default function Ventas() {
         }
 
         return receipt;
+      });
+
+      setReceipt({
+        storeName: settings?.storeName || 'NayadeStore',
+        receiptNumber: String(receiptNumber),
+        date: new Date(),
+        items: saleItems.map(it => ({ productName: it.productName, quantity: it.quantity, subtotal: it.subtotal })),
+        discount,
+        total: finalTotal,
+        customerName: selectedCustomer?.name,
+        customerPhone: selectedCustomer?.phone,
+        paymentMethod,
       });
 
       showToast(`Venta procesada: ${receiptNumber}`, 'success');
@@ -555,6 +570,7 @@ export default function Ventas() {
           </div>
         </>
       )}
+      {receipt && <ReceiptModal data={receipt} onClose={() => setReceipt(null)} />}
     </div>
   );
 }

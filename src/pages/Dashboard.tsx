@@ -48,8 +48,10 @@ export default function Dashboard() {
     }, 0);
 
     const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
-    const lowStockProducts = products.filter(p => p.stock <= p.minStock && p.stock > 0);
-    const outOfStock = products.filter(p => p.stock === 0).length;
+    // Low or out of stock, most critical (agotado) first.
+    const lowStockProducts = products
+      .filter(p => p.stock <= p.minStock)
+      .sort((a, b) => a.stock - b.stock);
 
     const activeInstallments = installments.filter(i => i.status === 'active');
     const pendingDebt = activeInstallments.reduce((sum, i) => sum + i.remainingAmount, 0);
@@ -88,7 +90,7 @@ export default function Dashboard() {
       return [];
     }).slice(0, 3);
 
-    return { todaySales: todaySalesTotal, todayProfit, totalStock, lowStock: lowStockProducts.length + outOfStock, pendingDebt, debtors, recentSales, lowStockProducts: lowStockProducts.slice(0, 3), upcomingPayments };
+    return { todaySales: todaySalesTotal, todayProfit, totalStock, lowStock: lowStockProducts.length, pendingDebt, debtors, recentSales, lowStockProducts: lowStockProducts.slice(0, 5), upcomingPayments };
   }, [sales, products, installments, installmentPayments, convertToCUP]);
 
   const quickActions = [
@@ -192,19 +194,26 @@ export default function Dashboard() {
       {stats.lowStockProducts.length > 0 && (
         <div className="animate-fade-in-up stagger-5" style={{ opacity: 0 }}>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-[#0F172A]">Stock Bajo</h3>
+            <h3 className="text-sm font-semibold text-[#0F172A]">Stock bajo y agotados</h3>
             <span className="text-xs bg-[#FEE2E2] text-[#DC2626] px-2 py-0.5 rounded-full font-medium">{stats.lowStock}</span>
           </div>
           <div className="bg-white rounded-xl shadow-sm divide-y divide-[#F1F5F9]">
-            {stats.lowStockProducts.map((product) => (
-              <div key={product.id} className="flex items-center justify-between p-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[#0F172A] truncate">{product.name}</p>
-                  <p className="text-xs text-[#475569]">{product.category}</p>
+            {stats.lowStockProducts.map((product) => {
+              const agotado = product.stock === 0;
+              return (
+                <div key={product.id} className="flex items-center justify-between p-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[#0F172A] truncate">{product.name}</p>
+                    <p className="text-xs text-[#475569]">{product.category}</p>
+                  </div>
+                  {agotado ? (
+                    <span className="text-xs font-bold text-white bg-[#DC2626] px-2 py-1 rounded-full flex-shrink-0">Agotado</span>
+                  ) : (
+                    <span className="text-xs font-bold text-[#D97706] flex-shrink-0">{product.stock} / {product.minStock}</span>
+                  )}
                 </div>
-                <span className="text-xs font-bold text-[#D97706] flex-shrink-0">{product.stock} / {product.minStock}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

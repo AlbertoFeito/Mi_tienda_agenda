@@ -92,6 +92,10 @@ export interface AppSettings {
   mlcRate: number;
   /** Salted SHA-256 hash of the app PIN ("salt$hash"). Undefined until set. */
   pinHash?: string;
+  /** Whether fingerprint/biometric unlock is enabled. */
+  biometricEnabled?: boolean;
+  /** ISO timestamp of the last successful data backup. */
+  lastBackupAt?: string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { useLiveQuery } from '@/lib/live';
 import { db } from '@/lib/db';
 import { setPin, verifyPin } from '@/lib/auth';
+import { biometricAvailable, biometricAuthenticate } from '@/lib/biometric';
 import LockScreen from '@/components/LockScreen';
 
 /**
@@ -15,6 +16,25 @@ import LockScreen from '@/components/LockScreen';
 export default function AuthGate({ children }: { children: ReactNode }) {
   const settings = useLiveQuery(() => db.settings.toArray().then((s) => s[0]), []);
   const [unlocked, setUnlocked] = useState(false);
+  const [canBiometric, setCanBiometric] = useState(false);
+
+  // Detect biometric availability when it's enabled in settings.
+  useEffect(() => {
+    if (settings?.biometricEnabled) biometricAvailable().then(setCanBiometric);
+    else setCanBiometric(false);
+  }, [settings?.biometricEnabled]);
+
+  // Auto-prompt biometrics whenever the app is locked and biometrics are on.
+  useEffect(() => {
+    if (unlocked || !settings?.pinHash || !settings?.biometricEnabled || !canBiometric) return;
+    let active = true;
+    biometricAuthenticate().then((ok) => {
+      if (active && ok) setUnlocked(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [unlocked, settings?.pinHash, settings?.biometricEnabled, canBiometric]);
 
   // Re-lock whenever the app is backgrounded (native only).
   useEffect(() => {
@@ -60,6 +80,13 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         if (ok) setUnlocked(true);
         return ok;
       }}
+      onBiometric={
+        canBiometric
+          ? async () => {
+              if (await biometricAuthenticate()) setUnlocked(true);
+            }
+          : undefined
+      }
     />
   );
 }
