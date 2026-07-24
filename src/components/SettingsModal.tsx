@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { X, Download, Upload, Trash2 } from 'lucide-react';
+import { X, Download, Upload, Trash2, KeyRound } from 'lucide-react';
+import ChangePinModal from '@/components/ChangePinModal';
 import { useApp } from '@/contexts/AppContext';
 import { exportData, importData, clearAllData } from '@/lib/db';
 import { useBackHandler } from '@/lib/backHandler';
@@ -19,6 +20,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
   const [primaryCurrency, setPrimaryCurrency] = useState<Currency>(settings?.primaryCurrency ?? 'CUP');
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showChangePin, setShowChangePin] = useState(false);
 
   useBackHandler(onClose);
   useBackHandler(() => { setShowDeleteModal(false); setDeleteConfirm(''); }, showDeleteModal);
@@ -174,6 +176,17 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
         {activeTab === 'data' && (
           <div className="space-y-4">
             <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3">
+              <p className="text-sm font-medium text-[#475569]">Seguridad</p>
+              <button
+                onClick={() => setShowChangePin(true)}
+                className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-lg font-medium active:scale-[0.98] transition-transform"
+              >
+                <KeyRound size={18} />
+                Cambiar PIN
+              </button>
+            </div>
+
+            <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3">
               <button
                 onClick={handleExport}
                 className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-lg font-medium active:scale-[0.98] transition-transform"
@@ -198,7 +211,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
 
             <div className="text-center pt-4">
-              <p className="text-xs text-[#94A3B8]">MiTienda v1.0.0</p>
+              <p className="text-xs text-[#94A3B8]">NayadeStore v1.3</p>
               <p className="text-xs text-[#94A3B8]">Gestión comercial offline</p>
             </div>
           </div>
@@ -237,6 +250,8 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       )}
+
+      {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
     </div>
   );
 }

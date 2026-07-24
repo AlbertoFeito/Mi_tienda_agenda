@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Delete, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
+import PinPad from '@/components/PinPad';
 
 const PIN_LENGTH = 4;
 
@@ -46,7 +47,6 @@ export default function LockScreen({ mode, onSubmit }: LockScreenProps) {
       return;
     }
 
-    // enter mode
     setBusy(true);
     const ok = await onSubmit(fullPin);
     setBusy(false);
@@ -62,7 +62,6 @@ export default function LockScreen({ mode, onSubmit }: LockScreenProps) {
     setPin(next);
     setError('');
     if (next.length === PIN_LENGTH) {
-      // Defer so the last dot renders before validating.
       setTimeout(() => handleComplete(next), 120);
     }
   };
@@ -81,45 +80,10 @@ export default function LockScreen({ mode, onSubmit }: LockScreenProps) {
       <h1 className="text-xl font-semibold">{title}</h1>
       <p className="text-sm text-white/70 mt-1 text-center max-w-xs">{subtitle}</p>
 
-      <div className="flex gap-4 my-8">
-        {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-          <div
-            key={i}
-            className={`w-4 h-4 rounded-full border-2 border-white/70 transition-colors ${
-              i < pin.length ? 'bg-white' : 'bg-transparent'
-            }`}
-          />
-        ))}
-      </div>
+      <PinPad pin={pin} onDigit={press} onBackspace={backspace} length={PIN_LENGTH} busy={busy} />
 
-      <div className="h-5 mb-2">
+      <div className="h-5 mt-4">
         {error && <p className="text-sm text-amber-200">{error}</p>}
-      </div>
-
-      <div className="grid grid-cols-3 gap-4 w-full max-w-xs">
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-          <button
-            key={d}
-            onClick={() => press(d)}
-            className="h-16 rounded-2xl bg-white/10 active:bg-white/25 text-2xl font-medium transition-colors"
-          >
-            {d}
-          </button>
-        ))}
-        <div />
-        <button
-          onClick={() => press('0')}
-          className="h-16 rounded-2xl bg-white/10 active:bg-white/25 text-2xl font-medium transition-colors"
-        >
-          0
-        </button>
-        <button
-          onClick={backspace}
-          className="h-16 rounded-2xl flex items-center justify-center active:bg-white/15 transition-colors"
-          aria-label="Borrar"
-        >
-          <Delete size={24} />
-        </button>
       </div>
     </div>
   );
