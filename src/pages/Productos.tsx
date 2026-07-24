@@ -181,6 +181,7 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
   const [minStock, setMinStock] = useState(product?.minStock || 5);
   const [description, setDescription] = useState(product?.description || '');
   const [image, setImage] = useState<string | undefined>(product?.image);
+  const [showViewer, setShowViewer] = useState(false);
   const [ownerName, setOwnerName] = useState(product?.ownerName || '');
   const [ownerContact, setOwnerContact] = useState(product?.ownerContact || '');
   const [profitPercent, setProfitPercent] = useState(20);
@@ -294,7 +295,7 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
         <div className="flex flex-col items-center gap-2">
           <button
             type="button"
-            onClick={handlePickImage}
+            onClick={() => (image ? setShowViewer(true) : handlePickImage())}
             className="w-24 h-24 rounded-xl bg-gray-100 flex items-center justify-center cursor-pointer overflow-hidden border-2 border-dashed border-gray-300 active:border-[#0F766E]"
           >
             {image ? (
@@ -304,13 +305,14 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
             )}
           </button>
           {image && (
-            <button
-              type="button"
-              onClick={() => setImage(undefined)}
-              className="text-xs text-[#DC2626] active:opacity-70"
-            >
-              Quitar imagen
-            </button>
+            <div className="flex items-center gap-5">
+              <button type="button" onClick={handlePickImage} className="text-xs font-medium text-[#0F766E] active:opacity-70">
+                Cambiar
+              </button>
+              <button type="button" onClick={() => setImage(undefined)} className="text-xs font-medium text-[#DC2626] active:opacity-70">
+                Quitar
+              </button>
+            </div>
           )}
         </div>
 
@@ -364,7 +366,7 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
               ))}
             </select>
           </div>
-          <NumberField value={costPrice} onChange={setCostPrice} decimals maxIntegerDigits={5} placeholder="0.00" />
+          <NumberField value={costPrice} onChange={setCostPrice} decimals placeholder="0.00" />
         </div>
 
         {/* Precio de Venta */}
@@ -381,7 +383,7 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
               ))}
             </select>
           </div>
-          <NumberField value={salePrice} onChange={setSalePrice} decimals maxIntegerDigits={5} placeholder="0.00" />
+          <NumberField value={salePrice} onChange={setSalePrice} decimals placeholder="0.00" />
         </div>
 
         {/* Calculadora de ganancia para productos ajenos */}
@@ -461,6 +463,8 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
           )}
         </div>
       </div>
+
+      {showViewer && image && <ImageViewer src={image} onClose={() => setShowViewer(false)} />}
     </div>
   );
 }

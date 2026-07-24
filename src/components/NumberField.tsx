@@ -9,7 +9,7 @@ interface NumberFieldProps {
   step?: number;
   /** Allow decimals (prices). When false, the value is kept as an integer. */
   decimals?: boolean;
-  /** Max digits before the decimal point (default 7). */
+  /** Max digits before the decimal point (unlimited when omitted). */
   maxIntegerDigits?: number;
   /** Max digits after the decimal point (default 2). */
   maxDecimals?: number;
@@ -32,7 +32,7 @@ export default function NumberField({
   max,
   step = 1,
   decimals = false,
-  maxIntegerDigits = 7,
+  maxIntegerDigits,
   maxDecimals = 2,
   placeholder,
   className = '',
@@ -68,14 +68,14 @@ export default function NumberField({
     let cleaned = raw.replace(decimals ? /[^0-9.,]/g : /[^0-9]/g, '').replace(',', '.');
     if (decimals) {
       const [intRaw = '', ...rest] = cleaned.split('.');
-      const intPart = intRaw.slice(0, maxIntegerDigits);
+      const intPart = maxIntegerDigits ? intRaw.slice(0, maxIntegerDigits) : intRaw;
       if (cleaned.includes('.')) {
         const decPart = rest.join('').slice(0, maxDecimals);
         cleaned = `${intPart}.${decPart}`;
       } else {
         cleaned = intPart;
       }
-    } else {
+    } else if (maxIntegerDigits) {
       cleaned = cleaned.slice(0, maxIntegerDigits);
     }
     return cleaned;
