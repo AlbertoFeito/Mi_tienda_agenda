@@ -21,7 +21,7 @@ function AppLayout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] flex flex-col max-w-lg mx-auto relative">
+    <div className="min-h-[100dvh] w-full max-w-lg mx-auto bg-[#F1F5F9] flex flex-col relative overflow-x-hidden">
       <BackButtonManager />
       <Header />
       <main className="flex-1 pt-14 pb-20 px-4 overflow-y-auto">

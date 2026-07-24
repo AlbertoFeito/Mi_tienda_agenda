@@ -9,6 +9,10 @@ interface NumberFieldProps {
   step?: number;
   /** Allow decimals (prices). When false, the value is kept as an integer. */
   decimals?: boolean;
+  /** Max digits before the decimal point (default 7). */
+  maxIntegerDigits?: number;
+  /** Max digits after the decimal point (default 2). */
+  maxDecimals?: number;
   placeholder?: string;
   /** Extra classes for the outer wrapper. */
   className?: string;
@@ -19,6 +23,7 @@ interface NumberFieldProps {
  * Numeric input with −/+ steppers (spinbox), used for prices, quantities,
  * stock, rates, etc. Keeps a text buffer so intermediate states (empty, a
  * trailing decimal point) are editable, while reporting a clamped number.
+ * Enforces digit limits so the value always fits the field.
  */
 export default function NumberField({
   value,
@@ -27,6 +32,8 @@ export default function NumberField({
   max,
   step = 1,
   decimals = false,
+  maxIntegerDigits = 7,
+  maxDecimals = 2,
   placeholder,
   className = '',
   disabled = false,
@@ -56,14 +63,26 @@ export default function NumberField({
     onChange(Number.isFinite(parsed) ? clamp(parsed) : min ?? 0);
   };
 
-  const handleInput = (raw: string) => {
-    // Allow only digits and, for decimals, a single separator.
-    let cleaned = raw.replace(decimals ? /[^0-9.,]/g : /[^0-9]/g, '');
-    cleaned = cleaned.replace(',', '.');
+  // Keep only valid characters and enforce the digit limits.
+  const sanitize = (raw: string): string => {
+    let cleaned = raw.replace(decimals ? /[^0-9.,]/g : /[^0-9]/g, '').replace(',', '.');
     if (decimals) {
-      const parts = cleaned.split('.');
-      if (parts.length > 2) cleaned = `${parts[0]}.${parts.slice(1).join('')}`;
+      const [intRaw = '', ...rest] = cleaned.split('.');
+      const intPart = intRaw.slice(0, maxIntegerDigits);
+      if (cleaned.includes('.')) {
+        const decPart = rest.join('').slice(0, maxDecimals);
+        cleaned = `${intPart}.${decPart}`;
+      } else {
+        cleaned = intPart;
+      }
+    } else {
+      cleaned = cleaned.slice(0, maxIntegerDigits);
     }
+    return cleaned;
+  };
+
+  const handleInput = (raw: string) => {
+    const cleaned = sanitize(raw);
     setText(cleaned);
     if (cleaned === '' || cleaned === '.') {
       onChange(min ?? 0);
@@ -79,7 +98,7 @@ export default function NumberField({
   };
 
   const btn =
-    'w-12 flex items-center justify-center text-[#0F766E] active:bg-[#0F766E]/10 disabled:opacity-30 disabled:active:bg-transparent transition-colors select-none flex-shrink-0';
+    'w-10 flex items-center justify-center text-[#0F766E] active:bg-[#0F766E]/10 disabled:opacity-30 disabled:active:bg-transparent transition-colors select-none flex-shrink-0';
 
   const atMin = min !== undefined && (Number.isFinite(value) ? value : 0) <= min;
   const atMax = max !== undefined && (Number.isFinite(value) ? value : 0) >= max;
@@ -97,7 +116,7 @@ export default function NumberField({
         className={`${btn} border-r border-[#E2E8F0]`}
         aria-label="Disminuir"
       >
-        <Minus size={18} strokeWidth={2.5} />
+        <Minus size={16} strokeWidth={2.5} />
       </button>
       <input
         type="text"
@@ -117,7 +136,7 @@ export default function NumberField({
           }
         }}
         onChange={(e) => handleInput(e.target.value)}
-        className="flex-1 min-w-0 px-2 text-center text-base font-semibold text-[#0F172A] bg-transparent outline-none placeholder:font-normal placeholder:text-[#CBD5E1]"
+        className="flex-1 min-w-0 w-full px-1 text-center text-base font-semibold text-[#0F172A] tabular-nums bg-transparent outline-none placeholder:font-normal placeholder:text-[#CBD5E1]"
       />
       <button
         type="button"
@@ -126,7 +145,7 @@ export default function NumberField({
         className={`${btn} border-l border-[#E2E8F0]`}
         aria-label="Aumentar"
       >
-        <Plus size={18} strokeWidth={2.5} />
+        <Plus size={16} strokeWidth={2.5} />
       </button>
     </div>
   );

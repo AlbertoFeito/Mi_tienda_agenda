@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useLiveQuery } from '@/lib/live';
-import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle, MessageSquare, MessageCircle } from 'lucide-react';
+import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle, MessageSquare, MessageCircle, Contact } from 'lucide-react';
 import { db } from '@/lib/db';
 import { useBackHandler } from '@/lib/backHandler';
 import NumberField from '@/components/NumberField';
 import PhoneField, { isValidCubanPhone, normalizeCubanPhone } from '@/components/PhoneField';
 import { buildReminderMessage, openSms, openWhatsApp } from '@/lib/messaging';
+import { pickPhoneContact, savePhoneContact, contactsSupported } from '@/lib/contacts';
 import { useApp } from '@/contexts/AppContext';
 import type { Customer, Installment, InstallmentPayment, PaymentMethod } from '@/types';
 
@@ -218,6 +219,19 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
 
   useBackHandler(onBack);
 
+  const canContacts = contactsSupported();
+  const [saveToContacts, setSaveToContacts] = useState(false);
+
+  const handlePickContact = async () => {
+    const picked = await pickPhoneContact();
+    if (!picked) {
+      showToast('No se pudo obtener el contacto', 'warning');
+      return;
+    }
+    if (picked.name) setName(picked.name);
+    if (picked.phone) setPhone(picked.phone);
+  };
+
   const handleSubmit = async () => {
     if (!name.trim()) {
       showToast('El nombre es obligatorio', 'error');
@@ -242,7 +256,12 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
         showToast('Cliente actualizado', 'success');
       } else {
         await db.customers.add(data);
-        showToast('Cliente agregado', 'success');
+        if (saveToContacts && canContacts) {
+          const ok = await savePhoneContact(data.name, normalizeCubanPhone(phone));
+          showToast(ok ? 'Cliente agregado y guardado en contactos' : 'Cliente agregado', 'success');
+        } else {
+          showToast('Cliente agregado', 'success');
+        }
       }
       onSave();
     } catch {
@@ -253,13 +272,20 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
   return (
     <div className="animate-fade-in-up">
       <div className="flex items-center gap-2 mb-4 px-4 pt-4">
-        <button onClick={onBack} className="p-2 rounded-lg active:bg-[#F1F5F9]">
-          <X size={20} className="text-[#475569]" />
-        </button>
         <h2 className="text-lg font-semibold">{customer ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
       </div>
 
       <div className="space-y-4 pb-8 px-4">
+        {canContacts && (
+          <button
+            type="button"
+            onClick={handlePickContact}
+            className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-xl font-medium active:scale-[0.98] transition-transform"
+          >
+            <Contact size={18} />
+            Elegir de contactos
+          </button>
+        )}
         <div>
           <label className="text-sm font-medium text-[#475569] block mb-1">Nombre completo *</label>
           <input
@@ -274,6 +300,17 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
           <label className="text-sm font-medium text-[#475569] block mb-1">Teléfono</label>
           <PhoneField value={phone} onChange={setPhone} />
         </div>
+        {canContacts && !customer && (
+          <label className="flex items-center gap-3 px-1 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={saveToContacts}
+              onChange={(e) => setSaveToContacts(e.target.checked)}
+              className="w-5 h-5 accent-[#0F766E]"
+            />
+            <span className="text-sm text-[#475569]">Guardar también en los contactos del teléfono</span>
+          </label>
+        )}
         <div>
           <label className="text-sm font-medium text-[#475569] block mb-1">Dirección</label>
           <input

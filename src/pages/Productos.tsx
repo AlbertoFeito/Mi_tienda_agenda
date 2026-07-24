@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { pickProductImage } from '@/lib/camera';
 import { useBackHandler } from '@/lib/backHandler';
 import NumberField from '@/components/NumberField';
+import ImageViewer from '@/components/ImageViewer';
 import { useApp } from '@/contexts/AppContext';
 import type { Product, ProductType, Currency } from '@/types';
 
@@ -17,6 +18,7 @@ export default function Productos() {
   const [filter, setFilter] = useState<ProductFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [viewerImage, setViewerImage] = useState<string | null>(null);
 
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
@@ -110,53 +112,57 @@ export default function Productos() {
         ) : (
           <div className="space-y-3">
             {filteredProducts.map((product, i) => (
-              <button
+              <div
                 key={product.id}
-                onClick={() => openForm(product)}
-                className="w-full bg-white rounded-xl p-4 shadow-sm text-left active:bg-[#F1F5F9] transition-colors"
+                className="w-full bg-white rounded-xl p-4 shadow-sm flex items-start gap-3"
                 style={{ animationDelay: `${i * 30}ms` }}
               >
-                <div className="flex items-start gap-3">
-                  {product.image ? (
-                    <img src={product.image} alt={product.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-2xl flex-shrink-0">
-                      📦
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium text-gray-900 truncate">{product.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            product.type === 'own' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-                          }`}>
-                            {product.type === 'own' ? 'Propio' : 'Ajeno'}
-                          </span>
-                          <span className="text-xs text-gray-500">{product.category}</span>
-                        </div>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="font-semibold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
-                        <p className={`text-xs font-medium ${
-                          product.stock <= 0 ? 'text-red-500' : 
-                          product.stock <= product.minStock ? 'text-orange-500' : 'text-gray-500'
-                        }`}>
-                          Stock: {product.stock}
-                        </p>
-                      </div>
-                    </div>
-                    {product.stock <= 0 && (
-                      <p className="text-xs text-red-500 mt-1 font-medium">Sin stock disponible</p>
-                    )}
+                {product.image ? (
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    onClick={() => setViewerImage(product.image!)}
+                    className="w-16 h-16 rounded-xl object-cover flex-shrink-0 cursor-zoom-in active:opacity-80"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-2xl flex-shrink-0">
+                    📦
                   </div>
-                </div>
-              </button>
+                )}
+                <button onClick={() => openForm(product)} className="flex-1 min-w-0 text-left active:opacity-70">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-gray-900 truncate">{product.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          product.type === 'own' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {product.type === 'own' ? 'Propio' : 'Ajeno'}
+                        </span>
+                        <span className="text-xs text-gray-500">{product.category}</span>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-semibold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
+                      <p className={`text-xs font-medium ${
+                        product.stock <= 0 ? 'text-red-500' :
+                        product.stock <= product.minStock ? 'text-orange-500' : 'text-gray-500'
+                      }`}>
+                        Stock: {product.stock}
+                      </p>
+                    </div>
+                  </div>
+                  {product.stock <= 0 && (
+                    <p className="text-xs text-red-500 mt-1 font-medium">Sin stock disponible</p>
+                  )}
+                </button>
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      {viewerImage && <ImageViewer src={viewerImage} onClose={() => setViewerImage(null)} />}
     </div>
   );
 }
@@ -264,9 +270,6 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
   return (
     <div className="animate-fade-in-up">
       <div className="flex items-center gap-2 mb-4 px-4 pt-4">
-        <button onClick={onBack} className="p-2 rounded-lg active:bg-[#F1F5F9]">
-          <X size={20} className="text-[#475569]" />
-        </button>
         <h2 className="text-lg font-semibold">{product ? 'Editar Producto' : 'Nuevo Producto'}</h2>
       </div>
 
@@ -348,43 +351,37 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
         </div>
 
         {/* Precio de Costo */}
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-sm font-medium text-[#475569] block mb-1">Precio de Costo *</label>
-            <NumberField value={costPrice} onChange={setCostPrice} decimals placeholder="0.00" />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-[#475569] block mb-1">Mon.</label>
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm font-medium text-[#475569]">Precio de Costo *</label>
             <select
               value={costCurrency}
               onChange={(e) => setCostCurrency(e.target.value as Currency)}
-              className="w-full h-12 px-2 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] outline-none bg-white"
+              className="h-8 px-2 rounded-lg border border-[#E2E8F0] text-sm focus:border-[#0F766E] outline-none bg-white"
             >
               {(['CUP', 'USD', 'EUR', 'MLC'] as Currency[]).map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
+          <NumberField value={costPrice} onChange={setCostPrice} decimals maxIntegerDigits={5} placeholder="0.00" />
         </div>
 
         {/* Precio de Venta */}
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-sm font-medium text-[#475569] block mb-1">Precio de Venta *</label>
-            <NumberField value={salePrice} onChange={setSalePrice} decimals placeholder="0.00" />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-[#475569] block mb-1">Mon.</label>
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm font-medium text-[#475569]">Precio de Venta *</label>
             <select
               value={saleCurrency}
               onChange={(e) => setSaleCurrency(e.target.value as Currency)}
-              className="w-full h-12 px-2 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] outline-none bg-white"
+              className="h-8 px-2 rounded-lg border border-[#E2E8F0] text-sm focus:border-[#0F766E] outline-none bg-white"
             >
               {(['CUP', 'USD', 'EUR', 'MLC'] as Currency[]).map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
+          <NumberField value={salePrice} onChange={setSalePrice} decimals maxIntegerDigits={5} placeholder="0.00" />
         </div>
 
         {/* Calculadora de ganancia para productos ajenos */}

@@ -47,6 +47,10 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <!-- Read/write the phone's contacts (local only) to pick or save a customer. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+
     <!--
       Package visibility (Android 11+) so the app can hand off payment
       reminders to the SMS app and to WhatsApp. These open other apps via an
