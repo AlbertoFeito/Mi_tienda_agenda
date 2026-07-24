@@ -4,6 +4,7 @@ import { useLiveQuery } from '@/lib/live';
 import { TrendingUp, DollarSign, Package, CreditCard, ShoppingCart, Plus, UserPlus, FileText } from 'lucide-react';
 import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
+import UpcomingCollections from '@/components/UpcomingCollections';
 import { isToday, isPast, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
 export default function Dashboard() {
@@ -108,6 +109,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5 animate-fade-in-up">
+      {/* Cobros próximos / recordatorios de pago */}
+      <UpcomingCollections />
+
       {/* Hero Stats */}
       <div className="grid grid-cols-2 gap-3">
         {[

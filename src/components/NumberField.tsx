@@ -79,12 +79,25 @@ export default function NumberField({
   };
 
   const btn =
-    'w-11 h-12 flex items-center justify-center rounded-lg bg-[#F1F5F9] text-[#0F766E] active:bg-[#E2E8F0] disabled:opacity-40 flex-shrink-0';
+    'w-12 flex items-center justify-center text-[#0F766E] active:bg-[#0F766E]/10 disabled:opacity-30 disabled:active:bg-transparent transition-colors select-none flex-shrink-0';
+
+  const atMin = min !== undefined && (Number.isFinite(value) ? value : 0) <= min;
+  const atMax = max !== undefined && (Number.isFinite(value) ? value : 0) >= max;
 
   return (
-    <div className={`flex items-stretch gap-2 ${className}`}>
-      <button type="button" onClick={() => bump(-step)} disabled={disabled} className={btn} aria-label="Disminuir">
-        <Minus size={18} />
+    <div
+      className={`flex items-stretch h-12 rounded-xl border border-[#E2E8F0] bg-white overflow-hidden transition-shadow focus-within:border-[#0F766E] focus-within:ring-2 focus-within:ring-[#0F766E]/15 ${
+        disabled ? 'opacity-60' : ''
+      } ${className}`}
+    >
+      <button
+        type="button"
+        onClick={() => bump(-step)}
+        disabled={disabled || atMin}
+        className={`${btn} border-r border-[#E2E8F0]`}
+        aria-label="Disminuir"
+      >
+        <Minus size={18} strokeWidth={2.5} />
       </button>
       <input
         type="text"
@@ -104,10 +117,16 @@ export default function NumberField({
           }
         }}
         onChange={(e) => handleInput(e.target.value)}
-        className="flex-1 min-w-0 h-12 px-3 text-center rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
+        className="flex-1 min-w-0 px-2 text-center text-base font-semibold text-[#0F172A] bg-transparent outline-none placeholder:font-normal placeholder:text-[#CBD5E1]"
       />
-      <button type="button" onClick={() => bump(step)} disabled={disabled} className={btn} aria-label="Aumentar">
-        <Plus size={18} />
+      <button
+        type="button"
+        onClick={() => bump(step)}
+        disabled={disabled || atMax}
+        className={`${btn} border-l border-[#E2E8F0]`}
+        aria-label="Aumentar"
+      >
+        <Plus size={18} strokeWidth={2.5} />
       </button>
     </div>
   );
