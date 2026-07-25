@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { AppProvider } from '@/contexts/AppContext';
+import { AppProvider, useApp } from '@/contexts/AppContext';
 import { maybeAutoBackup } from '@/lib/backup';
 import AuthGate from '@/components/AuthGate';
 import BackButtonManager from '@/components/BackButtonManager';
 import Header from '@/components/Header';
+import Onboarding from '@/components/Onboarding';
 import BottomNav from '@/components/BottomNav';
 import Toast from '@/components/Toast';
 import Dashboard from '@/pages/Dashboard';
@@ -16,15 +17,31 @@ import Analisis from '@/pages/Analisis';
 import './App.css';
 
 function AppLayout() {
+  const { settings, updateStoreInfo } = useApp();
+  // Lets the user replay the walkthrough from Ayuda once it is already done.
+  const [replayTour, setReplayTour] = useState(false);
+
   // Create an automatic local backup at most once a day.
   useEffect(() => {
     maybeAutoBackup();
   }, []);
 
+  // Wait for settings to load before deciding: `undefined` only means the read
+  // is still in flight, and showing the tour there would flash it every launch.
+  const showTour = replayTour || (settings !== undefined && !settings.onboardingDoneAt);
+
+  const finishTour = async () => {
+    setReplayTour(false);
+    if (settings && !settings.onboardingDoneAt) {
+      await updateStoreInfo({ onboardingDoneAt: new Date().toISOString() });
+    }
+  };
+
   return (
     <div className="min-h-[100dvh] w-full max-w-lg mx-auto bg-[#F1F5F9] flex flex-col relative overflow-x-hidden">
       <BackButtonManager />
-      <Header />
+      <Header onReplayTour={() => setReplayTour(true)} />
+      {showTour && <Onboarding onFinish={finishTour} />}
       <main className="flex-1 pt-14 pb-20 px-4 overflow-y-auto">
         <Routes>
           <Route path="/" element={<Dashboard />} />

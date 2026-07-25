@@ -115,6 +115,8 @@ export interface AppSettings {
   biometricEnabled?: boolean;
   /** ISO timestamp of the last successful data backup. */
   lastBackupAt?: string;
+  /** ISO timestamp of when the first-run walkthrough was completed. */
+  onboardingDoneAt?: string;
   createdAt: Date;
   updatedAt: Date;
 }
