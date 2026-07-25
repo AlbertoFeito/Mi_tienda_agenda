@@ -91,52 +91,52 @@ export default function Duenos() {
   }
 
   return (
-    <div className=”space-y-4 animate-fade-in-up”>
-      <div className=”flex items-center justify-between px-4 pt-4”>
+    <div className="space-y-4 animate-fade-in-up">
+      <div className="flex items-center justify-between px-4 pt-4">
         <div>
-          <h2 className=”text-xl font-bold”>Dueños</h2>
-          <p className=”text-sm text-[#475569] mt-1”>Liquidación de artículos ajenos que te dieron a vender.</p>
+          <h2 className="text-xl font-bold">Dueños</h2>
+          <p className="text-sm text-[#475569] mt-1">Liquidación de artículos ajenos que te dieron a vender.</p>
         </div>
         <button
           onClick={() => setView('management')}
-          className=”w-10 h-10 bg-[#0F766E] text-white rounded-full shadow-sm flex items-center justify-center active:scale-90 transition-transform”
+          className="w-10 h-10 bg-[#0F766E] text-white rounded-full shadow-sm flex items-center justify-center active:scale-90 transition-transform"
         >
           <Phone size={18} />
         </button>
       </div>
 
       {computedOwners.length === 0 ? (
-        <div className=”flex flex-col items-center justify-center py-16 text-gray-400 text-center px-6”>
-          <HandCoins className=”w-12 h-12 mb-3” />
-          <p className=”font-medium text-gray-500”>Aún no hay dueños</p>
-          <p className=”text-sm mt-1”>Marca un producto como “Ajeno” y ponle el nombre del dueño; aquí verás cuánto le debes.</p>
+        <div className="flex flex-col items-center justify-center py-16 text-gray-400 text-center px-6">
+          <HandCoins className="w-12 h-12 mb-3" />
+          <p className="font-medium text-gray-500">Aún no hay dueños</p>
+          <p className="text-sm mt-1">Marca un producto como "Ajeno" y ponle el nombre del dueño; aquí verás cuánto le debes.</p>
         </div>
       ) : (
-        <div className=”px-4 space-y-3”>
+        <div className="px-4 space-y-3">
           {computedOwners.map((o) => (
             <button
               key={o.ownerName}
               onClick={() => { setSelectedOwner(o.ownerName); setView('detail'); }}
-              className=”w-full bg-white rounded-xl p-4 shadow-sm text-left active:bg-[#F1F5F9] transition-colors”
+              className="w-full bg-white rounded-xl p-4 shadow-sm text-left active:bg-[#F1F5F9] transition-colors"
             >
-              <div className=”flex justify-between items-start gap-3”>
-                <div className=”min-w-0”>
-                  <p className=”font-semibold text-[#0F172A] truncate”>{o.ownerName}</p>
-                  <p className=”text-xs text-[#94A3B8] mt-0.5”>
+              <div className="flex justify-between items-start gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-[#0F172A] truncate">{o.ownerName}</p>
+                  <p className="text-xs text-[#94A3B8] mt-0.5">
                     {o.activeProducts} en venta · {o.products.length} en total
                   </p>
                 </div>
-                <div className=”text-right flex-shrink-0”>
-                  <p className=”text-[10px] text-[#94A3B8]”>Le debes</p>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-[10px] text-[#94A3B8]">Le debes</p>
                   <p className={`font-bold ${o.balance > 0.005 ? 'text-[#DC2626]' : 'text-[#059669]'}`}>
                     {formatPrice(o.balance, 'CUP')}
                   </p>
                 </div>
               </div>
-              <div className=”flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-[#475569]”>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-[#475569]">
                 <span>Vendido: {formatPrice(o.totalOwed, 'CUP')}</span>
                 <span>Pagado: {formatPrice(o.totalPaid, 'CUP')}</span>
-                <span className=”text-[#0F766E] font-medium”>Tu ganancia: {formatPrice(o.profit, 'CUP')}</span>
+                <span className="text-[#0F766E] font-medium">Tu ganancia: {formatPrice(o.profit, 'CUP')}</span>
               </div>
             </button>
           ))}
@@ -314,7 +314,7 @@ function OwnerForm({ owner, onBack }: { owner: Owner | null; onBack: () => void 
   };
 
   useEffect(() => {
-    contactsSupported().then(setContactsAvailable);
+    setContactsAvailable(contactsSupported());
   }, []);
 
   useBackHandler(onBack);
@@ -436,7 +436,6 @@ function OwnerDetail({
       <div className="px-4 pb-8 space-y-4">
         {owner.contact && <p className="text-sm text-[#475569] -mt-2">Contacto: {owner.contact}</p>}
 
-        {/* Resumen */}
         <div className="bg-white rounded-2xl shadow-sm p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-[#475569]">Saldo a pagar</span>
@@ -485,7 +484,6 @@ function OwnerDetail({
           </button>
         </div>
 
-        {/* Productos entregados */}
         <div>
           <h3 className="text-sm font-semibold text-[#0F172A] mb-2">Artículos entregados</h3>
           <div className="space-y-2">
@@ -507,7 +505,6 @@ function OwnerDetail({
           </div>
         </div>
 
-        {/* Historial de pagos */}
         {payments.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold text-[#0F172A] mb-2">Pagos realizados</h3>
