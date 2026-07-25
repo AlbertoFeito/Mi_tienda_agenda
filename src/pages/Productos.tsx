@@ -169,6 +169,7 @@ export default function Productos() {
 
 function ProductForm({ product, onBack }: { product: Product | null; onBack: () => void }) {
   const { formatPrice, showToast, convertToCUP, currencyRates } = useApp();
+  const dbOwners = useLiveQuery(() => db.owners.toArray(), []) || [];
   const ownerSuggestions =
     useLiveQuery(
       () =>
@@ -478,24 +479,32 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
         {type === 'consignment' && (
           <div className="space-y-3 pt-2 border-t border-gray-100">
             <p className="text-sm font-medium text-[#475569]">Datos del dueño</p>
-            <input
-              type="text"
+            <select
               value={ownerName}
-              onChange={(e) => setOwnerName(e.target.value)}
-              placeholder="Nombre del dueño"
-              list="owner-suggestions"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-            />
-            <datalist id="owner-suggestions">
-              {ownerSuggestions.map((n) => (
-                <option key={n} value={n} />
+              onChange={(e) => {
+                setOwnerName(e.target.value);
+                const selected = dbOwners.find((o) => o.name === e.target.value);
+                setOwnerContact(selected?.phone || '');
+              }}
+              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none bg-white"
+            >
+              <option value="">Seleccionar dueño...</option>
+              {[...new Set([...dbOwners.map((o) => o.name), ...ownerSuggestions])].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
               ))}
-            </datalist>
+            </select>
+            {ownerContact && (
+              <p className="text-xs text-[#94A3B8] p-2 bg-[#F1F5F9] rounded-lg">
+                Contacto: {ownerContact}
+              </p>
+            )}
             <input
               type="text"
               value={ownerContact}
               onChange={(e) => setOwnerContact(e.target.value)}
-              placeholder="Contacto del dueño"
+              placeholder="O ingresa un contacto personalizado"
               className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
             />
           </div>

@@ -22,6 +22,7 @@ export const TABLE_NAMES = [
   'products',
   'sales',
   'customers',
+  'owners',
   'installments',
   'installmentPayments',
   'ownerPayments',

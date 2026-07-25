@@ -1,4 +1,4 @@
-import { CheckCircle, Share2, MessageCircle, MessageSquare, X } from 'lucide-react';
+import { CheckCircle, Share2, MessageCircle, MessageSquare } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { buildReceiptText, type ReceiptData } from '@/lib/receipt';
 import { openSms, openWhatsApp } from '@/lib/messaging';
@@ -42,10 +42,6 @@ export default function ReceiptModal({ data, onClose }: { data: ReceiptData; onC
     <div className="fixed inset-0 z-[300] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up max-h-[85vh] flex flex-col">
-        <button onClick={onClose} className="absolute top-3 right-3 p-2 text-[#94A3B8]" aria-label="Cerrar">
-          <X size={22} />
-        </button>
-
         <div className="flex flex-col items-center pt-1 pb-3">
           <div className="w-12 h-12 rounded-full bg-[#D1FAE5] flex items-center justify-center mb-2">
             <CheckCircle size={26} className="text-[#059669]" />

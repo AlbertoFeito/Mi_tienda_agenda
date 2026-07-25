@@ -2,6 +2,7 @@ import type {
   Product,
   Sale,
   Customer,
+  Owner,
   Installment,
   InstallmentPayment,
   OwnerPayment,
@@ -31,6 +32,7 @@ const DATE_FIELDS: Record<TableName, string[]> = {
   products: ['createdAt', 'updatedAt'],
   sales: ['createdAt'],
   customers: ['createdAt'],
+  owners: ['createdAt', 'updatedAt'],
   installments: ['startDate', 'createdAt'],
   installmentPayments: ['paymentDate', 'createdAt'],
   ownerPayments: ['createdAt'],
@@ -161,6 +163,7 @@ export const db = {
   products: makeTable<Product>('products'),
   sales: makeTable<Sale>('sales'),
   customers: makeTable<Customer>('customers'),
+  owners: makeTable<Owner>('owners'),
   installments: makeTable<Installment>('installments'),
   installmentPayments: makeTable<InstallmentPayment>('installmentPayments'),
   ownerPayments: makeTable<OwnerPayment>('ownerPayments'),
@@ -201,6 +204,7 @@ export async function exportData(): Promise<string> {
     products: await db.products.toArray(),
     sales: await db.sales.toArray(),
     customers: await db.customers.toArray(),
+    owners: await db.owners.toArray(),
     installments: await db.installments.toArray(),
     installmentPayments: await db.installmentPayments.toArray(),
     ownerPayments: await db.ownerPayments.toArray(),
@@ -214,11 +218,12 @@ export async function importData(jsonString: string): Promise<void> {
   const data = JSON.parse(jsonString);
   await db.transaction(
     'rw',
-    [db.products, db.sales, db.customers, db.installments, db.installmentPayments, db.ownerPayments, db.settings],
+    [db.products, db.sales, db.customers, db.owners, db.installments, db.installmentPayments, db.ownerPayments, db.settings],
     async () => {
       await db.products.clear();
       await db.sales.clear();
       await db.customers.clear();
+      await db.owners.clear();
       await db.installments.clear();
       await db.installmentPayments.clear();
       await db.ownerPayments.clear();
@@ -227,6 +232,7 @@ export async function importData(jsonString: string): Promise<void> {
       if (data.products) await db.products.bulkAdd(data.products);
       if (data.sales) await db.sales.bulkAdd(data.sales);
       if (data.customers) await db.customers.bulkAdd(data.customers);
+      if (data.owners) await db.owners.bulkAdd(data.owners);
       if (data.installments) await db.installments.bulkAdd(data.installments);
       if (data.installmentPayments) await db.installmentPayments.bulkAdd(data.installmentPayments);
       if (data.ownerPayments) await db.ownerPayments.bulkAdd(data.ownerPayments);

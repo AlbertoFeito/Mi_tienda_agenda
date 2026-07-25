@@ -56,6 +56,16 @@ export interface Customer {
   createdAt: Date;
 }
 
+export interface Owner {
+  id?: number;
+  name: string;
+  phone?: string;
+  email?: string;
+  avatar?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Installment {
   id?: number;
   saleId: number;

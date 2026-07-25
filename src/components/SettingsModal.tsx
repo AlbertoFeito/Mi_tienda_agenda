@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Download, Upload, Trash2, KeyRound, Fingerprint } from 'lucide-react';
+import { Download, Upload, Trash2, KeyRound, Fingerprint } from 'lucide-react';
 import ChangePinModal from '@/components/ChangePinModal';
 import { useApp } from '@/contexts/AppContext';
 import { importData, clearAllData } from '@/lib/db';
@@ -93,9 +93,6 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[300] bg-white flex flex-col animate-slide-up">
       <div className="h-14 bg-[#134E4A] text-white flex items-center justify-between px-4 flex-shrink-0">
         <h2 className="text-lg font-semibold">Configuración</h2>
-        <button onClick={onClose} className="p-2 active:scale-95 transition-transform">
-          <X size={22} />
-        </button>
       </div>
 
       <div className="flex border-b border-[#E2E8F0] flex-shrink-0">
