@@ -5,6 +5,7 @@ import { TrendingUp, DollarSign, Package, CreditCard, ShoppingCart, Plus, UserPl
 import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
 import UpcomingCollections from '@/components/UpcomingCollections';
+import FirstSteps from '@/components/FirstSteps';
 import { isToday, isPast, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
 export default function Dashboard() {
@@ -109,6 +110,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5 animate-fade-in-up">
+      {/* Lista de configuración inicial; se va sola al completarse */}
+      <FirstSteps />
+
       {/* Cobros próximos / recordatorios de pago */}
       <UpcomingCollections />
 

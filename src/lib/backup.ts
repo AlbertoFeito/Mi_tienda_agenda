@@ -19,9 +19,15 @@ function backupFilename(): string {
   return `NayadeStore-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`;
 }
 
-async function markBackedUp(): Promise<void> {
+async function markBackedUp(shared = false): Promise<void> {
   const row = (await db.settings.toArray())[0];
-  if (row?.id) await db.settings.update(row.id, { lastBackupAt: new Date().toISOString() });
+  if (!row?.id) return;
+  const now = new Date().toISOString();
+  await db.settings.update(row.id, {
+    lastBackupAt: now,
+    // Only a backup the user sent somewhere else survives losing the phone.
+    ...(shared ? { lastSharedBackupAt: now } : {}),
+  });
 }
 
 function downloadInBrowser(json: string, filename: string): void {
@@ -65,7 +71,7 @@ export async function shareBackup(): Promise<void> {
 
   if (!Capacitor.isNativePlatform()) {
     downloadInBrowser(json, filename);
-    await markBackedUp();
+    await markBackedUp(true);
     return;
   }
 
@@ -73,7 +79,7 @@ export async function shareBackup(): Promise<void> {
   const { Share } = await import('@capacitor/share');
   await Filesystem.writeFile({ path: filename, data: json, directory: Directory.Cache, encoding: Encoding.UTF8, recursive: true });
   const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
-  await markBackedUp();
+  await markBackedUp(true);
   await Share.share({
     title: 'Copia de seguridad NayadeStore',
     text: 'Copia de seguridad de NayadeStore',

@@ -1,11 +1,12 @@
 import { HelpCircle, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useApp } from '@/contexts/AppContext';
 import SettingsModal from './SettingsModal';
 import HelpModal from './HelpModal';
 
 export default function Header({ onReplayTour }: { onReplayTour: () => void }) {
-  const [showSettings, setShowSettings] = useState(false);
+  const { settingsTab, openSettings, closeSettings } = useApp();
   const [showHelp, setShowHelp] = useState(false);
   const location = useLocation();
 
@@ -22,7 +23,7 @@ export default function Header({ onReplayTour }: { onReplayTour: () => void }) {
             <HelpCircle size={22} />
           </button>
           <button
-            onClick={() => setShowSettings(true)}
+            onClick={() => openSettings()}
             className="p-2 rounded-lg active:scale-95 active:opacity-80 transition-transform"
             aria-label="Configuración"
           >
@@ -30,7 +31,7 @@ export default function Header({ onReplayTour }: { onReplayTour: () => void }) {
           </button>
         </div>
       </header>
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {settingsTab && <SettingsModal initialTab={settingsTab} onClose={closeSettings} />}
       {showHelp && (
         <HelpModal
           route={location.pathname}

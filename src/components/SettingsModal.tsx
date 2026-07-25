@@ -10,9 +10,15 @@ import NumberField from '@/components/NumberField';
 import PhoneField, { isValidCubanPhone, normalizeCubanPhone } from '@/components/PhoneField';
 import type { Currency } from '@/types';
 
-export default function SettingsModal({ onClose }: { onClose: () => void }) {
+export default function SettingsModal({
+  initialTab = 'rates',
+  onClose,
+}: {
+  initialTab?: 'rates' | 'store' | 'data';
+  onClose: () => void;
+}) {
   const { settings, updateRates, updateStoreInfo, showToast } = useApp();
-  const [activeTab, setActiveTab] = useState<'rates' | 'store' | 'data'>('rates');
+  const [activeTab, setActiveTab] = useState<'rates' | 'store' | 'data'>(initialTab);
   const [usdRate, setUsdRate] = useState(settings?.usdRate ?? 320);
   const [eurRate, setEurRate] = useState(settings?.eurRate ?? 350);
   const [mlcRate, setMlcRate] = useState(settings?.mlcRate ?? 300);
@@ -249,7 +255,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
 
             <div className="text-center pt-4">
-              <p className="text-xs text-[#94A3B8]">NayadeStore v2.4</p>
+              <p className="text-xs text-[#94A3B8]">NayadeStore v2.5</p>
               <p className="text-xs text-[#94A3B8]">Gestión comercial offline</p>
             </div>
           </div>

@@ -3,6 +3,8 @@ import { useLiveQuery } from '@/lib/live';
 import { db } from '@/lib/db';
 import type { AppSettings, Currency } from '@/types';
 
+export type SettingsTab = 'rates' | 'store' | 'data';
+
 interface AppContextType {
   settings: AppSettings | undefined;
   currencyRates: { USD: number; EUR: number; MLC: number };
@@ -12,6 +14,10 @@ interface AppContextType {
   formatPrice: (amount: number, currency: Currency) => string;
   toast: ToastState | null;
   showToast: (message: string, type: ToastType) => void;
+  /** Which Configuración tab is open, or null when it is closed. */
+  settingsTab: SettingsTab | null;
+  openSettings: (tab?: SettingsTab) => void;
+  closeSettings: () => void;
 }
 
 type ToastType = 'success' | 'warning' | 'error';
@@ -26,6 +32,10 @@ const AppContext = createContext<AppContextType | null>(null);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const settings = useLiveQuery(() => db.settings.toArray().then(s => s[0]), []);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
+
+  const openSettings = useCallback((tab: SettingsTab = 'rates') => setSettingsTab(tab), []);
+  const closeSettings = useCallback(() => setSettingsTab(null), []);
 
   const currencyRates = {
     USD: settings?.usdRate ?? 320,
@@ -52,6 +62,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       usdRate: usd,
       eurRate: eur,
       mlcRate: mlc,
+      ratesReviewedAt: new Date().toISOString(),
       updatedAt: new Date(),
     });
   }, [settings]);
@@ -82,6 +93,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       formatPrice,
       toast,
       showToast,
+      settingsTab,
+      openSettings,
+      closeSettings,
     }}>
       {children}
     </AppContext.Provider>

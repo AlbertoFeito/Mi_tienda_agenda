@@ -7,6 +7,7 @@ import {
   HELP_TOPICS,
   buildHelpManual,
   searchTopics,
+  topicById,
   topicForRoute,
   type HelpTopic,
 } from '@/lib/help';
@@ -18,16 +19,22 @@ import {
  */
 export default function HelpModal({
   route,
+  topicId,
   onClose,
   onReplayTour,
 }: {
-  route: string;
+  /** Screen the user is on; its topic opens first. */
+  route?: string;
+  /** Opens straight on this topic, whatever screen we came from. */
+  topicId?: string;
   onClose: () => void;
-  onReplayTour: () => void;
+  onReplayTour?: () => void;
 }) {
   const { settings, showToast } = useApp();
   const [query, setQuery] = useState('');
-  const [openTopic, setOpenTopic] = useState<HelpTopic | null>(() => topicForRoute(route) ?? null);
+  const [openTopic, setOpenTopic] = useState<HelpTopic | null>(
+    () => (topicId ? topicById(topicId) : route ? topicForRoute(route) : undefined) ?? null,
+  );
 
   const results = useMemo(() => searchTopics(query), [query]);
 
@@ -138,13 +145,15 @@ export default function HelpModal({
           )}
 
           <div className="space-y-2 pt-2">
-            <button
-              onClick={onReplayTour}
-              className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-xl font-medium active:scale-[0.98] transition-transform"
-            >
-              <GraduationCap size={18} />
-              Ver el recorrido inicial
-            </button>
+            {onReplayTour && (
+              <button
+                onClick={onReplayTour}
+                className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-xl font-medium active:scale-[0.98] transition-transform"
+              >
+                <GraduationCap size={18} />
+                Ver el recorrido inicial
+              </button>
+            )}
             <button
               onClick={shareManual}
               className="w-full h-12 flex items-center justify-center gap-2 border border-[#E2E8F0] text-[#475569] rounded-xl font-medium active:scale-[0.98] transition-transform"

@@ -1,10 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { HELP_TOPICS, buildHelpManual, searchTopics, topicForRoute } from '@/lib/help';
+import { HELP_TOPICS, buildHelpManual, searchTopics, topicById, topicForRoute } from '@/lib/help';
 
 describe('help content', () => {
   it('has a topic for every screen in the bottom navigation', () => {
     for (const route of ['/', '/ventas', '/productos', '/clientes', '/duenos', '/analisis']) {
       expect(topicForRoute(route), `falta la ayuda de ${route}`).toBeDefined();
+    }
+  });
+
+  it('has the topics the inline "?" buttons point at', () => {
+    // Wired from Productos (ajeno), Ventas (a plazos) and Dueños.
+    for (const id of ['ajenos', 'plazos', 'duenos']) {
+      expect(topicById(id), `falta el tema ${id}`).toBeDefined();
     }
   });
 

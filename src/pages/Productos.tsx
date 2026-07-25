@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { pickProductImage } from '@/lib/camera';
 import { useBackHandler } from '@/lib/backHandler';
 import NumberField from '@/components/NumberField';
+import HelpButton from '@/components/HelpButton';
 import ImageViewer from '@/components/ImageViewer';
 import { useApp } from '@/contexts/AppContext';
 import type { Product, ProductType, Currency } from '@/types';
@@ -481,7 +482,10 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
         {/* Datos del dueño (solo para productos ajenos) */}
         {type === 'consignment' && (
           <div className="space-y-3 pt-2 border-t border-gray-100">
-            <p className="text-sm font-medium text-[#475569]">Datos del dueño</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-[#475569]">Datos del dueño</p>
+              <HelpButton topicId="ajenos" label="Cómo funciona" />
+            </div>
             <select
               value={ownerName}
               onChange={(e) => {

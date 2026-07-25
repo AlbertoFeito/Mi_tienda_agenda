@@ -3,6 +3,7 @@ import { useLiveQuery } from '@/lib/live';
 import { Search, X, ShoppingCart, Minus, Plus, Trash2, CreditCard, Banknote, Repeat, ChevronDown, User, Package } from 'lucide-react';
 import { db } from '@/lib/db';
 import NumberField from '@/components/NumberField';
+import HelpButton from '@/components/HelpButton';
 import ReceiptModal from '@/components/ReceiptModal';
 import type { ReceiptData } from '@/lib/receipt';
 import { useApp } from '@/contexts/AppContext';
@@ -432,6 +433,10 @@ export default function Ventas() {
               {/* Cliente para plazos */}
               {paymentMethod === 'installment' && (
                 <div className="space-y-3" ref={customerDropdownRef}>
+                  <div className="flex items-center justify-between -mb-1">
+                    <span className="text-sm font-medium text-gray-700">Venta a plazos</span>
+                    <HelpButton topicId="plazos" label="Cómo funciona" />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Cliente *</label>
                     <div className="relative">

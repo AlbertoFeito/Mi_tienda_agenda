@@ -117,6 +117,14 @@ export interface AppSettings {
   lastBackupAt?: string;
   /** ISO timestamp of when the first-run walkthrough was completed. */
   onboardingDoneAt?: string;
+  /** ISO timestamp of the last time the user reviewed the exchange rates. */
+  ratesReviewedAt?: string;
+  /**
+   * ISO timestamp of the last backup the user actually sent out of the phone.
+   * Kept apart from `lastBackupAt`, which the daily automatic backup also sets
+   * and which therefore proves nothing about surviving a lost phone.
+   */
+  lastSharedBackupAt?: string;
   createdAt: Date;
   updatedAt: Date;
 }

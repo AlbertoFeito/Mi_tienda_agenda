@@ -72,6 +72,41 @@ export const HELP_TOPICS: HelpTopic[] = [
     keywords: ['productos', 'propio', 'ajeno', 'stock', 'inventario', 'precio', 'costo', 'foto', 'categoría'],
   },
   {
+    id: 'ajenos',
+    title: 'Precios de un artículo ajeno',
+    summary:
+      'En un artículo ajeno el Precio de Costo no es lo que pagaste tú: es lo que el dueño quiere recibir por cada unidad.',
+    steps: [
+      'Precio de Costo: lo que el dueño pide. Eso es lo que le vas a entregar por cada una que vendas.',
+      'Precio de Venta: en cuánto lo das tú. Lo que pase del costo es tu ganancia.',
+      'Elige el dueño de la lista para que la cuenta se le sume a él.',
+    ],
+    notes: [
+      'Si no sabes qué precio poner, usa la calculadora: escribe el % que quieres ganar y te sugiere el precio de venta.',
+      'Ejemplo: el dueño pide 1.000 y tú vendes en 1.200. Por cada unidad, 1.000 son de él y 200 tuyos.',
+      'Si el dueño todavía no está en la lista, créalo primero en la pestaña Dueños.',
+    ],
+    keywords: ['ajeno', 'dueño', 'costo', 'precio', 'consignación', 'calculadora', 'porciento', 'margen'],
+  },
+  {
+    id: 'plazos',
+    title: 'Vender a plazos',
+    summary: 'El cliente se lleva la mercancía y te va pagando por partes, en las fechas que acuerden.',
+    steps: [
+      'En la venta, elige la forma de pago “A plazos”.',
+      'Escoge el cliente. Si no está, créalo antes en la pestaña Clientes.',
+      'Pon en cuántos pagos lo va a dividir.',
+      'Elige cada cuánto paga: semanal, quincenal o mensual.',
+      'Cobra la venta.',
+    ],
+    notes: [
+      'A partir de ahí, cada pago se registra desde la ficha del cliente, en Clientes.',
+      'La app te avisa en Inicio de los cobros que se acercan y de los que ya vencieron.',
+      'Al cliente le puedes mandar el recordatorio ya escrito por WhatsApp o SMS.',
+    ],
+    keywords: ['plazos', 'cuotas', 'fiado', 'crédito', 'semanal', 'quincenal', 'mensual', 'deuda'],
+  },
+  {
     id: 'clientes',
     route: '/clientes',
     title: 'Clientes y cobros a plazos',
@@ -102,7 +137,8 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
     notes: [
       'Ejemplo: el dueño quiere 100 por una blusa y tú la vendes en 150. Si vendes 2, le debes 200 y tú ganaste 100.',
-      'El “Saldo a pagar” es lo vendido menos lo que ya le entregaste.',
+      'El “Saldo a pagar” es lo vendido menos lo que ya le entregaste: ese es el número que cuenta.',
+      'En “Artículos entregados”, el “Suyo” de cada artículo es lo que ha generado ese artículo en total, sin descontar tus pagos. Por eso puede ser mayor que el saldo.',
       'Puedes mandarle el resumen de su cuenta por WhatsApp o SMS desde su ficha.',
       'En “Gestionar” creas los dueños, con su teléfono, y los eliges de tus contactos.',
     ],
@@ -170,6 +206,10 @@ export const HELP_TOPICS: HelpTopic[] = [
 /** The contextual topic for a screen, when that screen has one. */
 export function topicForRoute(route: string): HelpTopic | undefined {
   return HELP_TOPICS.find((t) => t.route === route);
+}
+
+export function topicById(id: string): HelpTopic | undefined {
+  return HELP_TOPICS.find((t) => t.id === id);
 }
 
 function fold(text: string): string {

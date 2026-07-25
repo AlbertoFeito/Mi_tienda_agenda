@@ -8,6 +8,7 @@ import { openSms, openWhatsApp } from '@/lib/messaging';
 import { normalizeCubanPhone, isValidCubanPhone } from '@/components/PhoneField';
 import PhoneField from '@/components/PhoneField';
 import NumberField from '@/components/NumberField';
+import HelpButton from '@/components/HelpButton';
 import { computeOwners, type OwnerSummary } from '@/lib/owners';
 import type { Owner, OwnerPayment } from '@/types';
 import { pickPhoneContact, savePhoneContact, contactsSupported } from '@/lib/contacts';
@@ -100,7 +101,10 @@ export default function Duenos() {
     <div className="space-y-4 animate-fade-in-up">
       <div className="flex items-center justify-between px-4 pt-4">
         <div>
-          <h2 className="text-xl font-bold">Dueños</h2>
+          <div className="flex items-center gap-1">
+            <h2 className="text-xl font-bold">Dueños</h2>
+            <HelpButton topicId="duenos" />
+          </div>
           <p className="text-sm text-[#475569] mt-1">Liquidación de artículos ajenos que te dieron a vender.</p>
         </div>
         <button
@@ -461,7 +465,10 @@ function OwnerDetail({
   return (
     <div className="animate-fade-in-up">
       <div className="flex items-center justify-between gap-2 mb-4 px-4 pt-4">
-        <h2 className="text-lg font-semibold truncate">{owner.ownerName}</h2>
+        <div className="flex items-center gap-1 min-w-0">
+          <h2 className="text-lg font-semibold truncate">{owner.ownerName}</h2>
+          <HelpButton topicId="duenos" />
+        </div>
         {registered && (
           <button
             onClick={onEdit}
@@ -478,7 +485,10 @@ function OwnerDetail({
 
         <div className="bg-white rounded-2xl shadow-sm p-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-[#475569]">Saldo a pagar</span>
+            <div>
+              <span className="text-sm text-[#475569] block">Saldo a pagar</span>
+              <span className="text-[11px] text-[#94A3B8]">lo vendido menos lo que ya le diste</span>
+            </div>
             <span className={`text-2xl font-bold ${owner.balance > 0.005 ? 'text-[#DC2626]' : 'text-[#059669]'}`}>
               {formatPrice(owner.balance, 'CUP')}
             </span>
@@ -525,7 +535,10 @@ function OwnerDetail({
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-[#0F172A] mb-2">Artículos entregados</h3>
+          <h3 className="text-sm font-semibold text-[#0F172A]">Artículos entregados</h3>
+          <p className="text-xs text-[#94A3B8] mb-2">
+            Lo que ha generado cada artículo, antes de descontar tus pagos.
+          </p>
           <div className="space-y-2">
             {owner.products.map(({ product, soldQty, remaining, owedCUP, profitCUP }) => (
               <div key={product.id} className="bg-white rounded-xl p-3 shadow-sm">
@@ -537,7 +550,7 @@ function OwnerDetail({
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[11px] text-[#475569]">
                   <span>Vendidos: {soldQty}</span>
-                  <span>Le debes: {formatPrice(owedCUP, 'CUP')}</span>
+                  <span>Suyo: {formatPrice(owedCUP, 'CUP')}</span>
                   <span className="text-[#0F766E]">Ganancia: {formatPrice(profitCUP, 'CUP')}</span>
                 </div>
               </div>
