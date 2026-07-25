@@ -4,6 +4,7 @@ import type {
   Customer,
   Installment,
   InstallmentPayment,
+  OwnerPayment,
   AppSettings,
 } from '@/types';
 import {
@@ -32,6 +33,7 @@ const DATE_FIELDS: Record<TableName, string[]> = {
   customers: ['createdAt'],
   installments: ['startDate', 'createdAt'],
   installmentPayments: ['paymentDate', 'createdAt'],
+  ownerPayments: ['createdAt'],
   settings: ['createdAt', 'updatedAt'],
 };
 
@@ -161,6 +163,7 @@ export const db = {
   customers: makeTable<Customer>('customers'),
   installments: makeTable<Installment>('installments'),
   installmentPayments: makeTable<InstallmentPayment>('installmentPayments'),
+  ownerPayments: makeTable<OwnerPayment>('ownerPayments'),
   settings: makeTable<AppSettings>('settings'),
 
   /**
@@ -200,6 +203,7 @@ export async function exportData(): Promise<string> {
     customers: await db.customers.toArray(),
     installments: await db.installments.toArray(),
     installmentPayments: await db.installmentPayments.toArray(),
+    ownerPayments: await db.ownerPayments.toArray(),
     settings: await db.settings.toArray(),
     exportDate: new Date().toISOString(),
   };
@@ -210,13 +214,14 @@ export async function importData(jsonString: string): Promise<void> {
   const data = JSON.parse(jsonString);
   await db.transaction(
     'rw',
-    [db.products, db.sales, db.customers, db.installments, db.installmentPayments, db.settings],
+    [db.products, db.sales, db.customers, db.installments, db.installmentPayments, db.ownerPayments, db.settings],
     async () => {
       await db.products.clear();
       await db.sales.clear();
       await db.customers.clear();
       await db.installments.clear();
       await db.installmentPayments.clear();
+      await db.ownerPayments.clear();
       await db.settings.clear();
 
       if (data.products) await db.products.bulkAdd(data.products);
@@ -224,6 +229,7 @@ export async function importData(jsonString: string): Promise<void> {
       if (data.customers) await db.customers.bulkAdd(data.customers);
       if (data.installments) await db.installments.bulkAdd(data.installments);
       if (data.installmentPayments) await db.installmentPayments.bulkAdd(data.installmentPayments);
+      if (data.ownerPayments) await db.ownerPayments.bulkAdd(data.ownerPayments);
       if (data.settings) await db.settings.bulkAdd(data.settings);
     },
   );

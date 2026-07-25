@@ -11,6 +11,7 @@ import Dashboard from '@/pages/Dashboard';
 import Ventas from '@/pages/Ventas';
 import Productos from '@/pages/Productos';
 import Clientes from '@/pages/Clientes';
+import Duenos from '@/pages/Duenos';
 import Analisis from '@/pages/Analisis';
 import './App.css';
 
@@ -30,6 +31,7 @@ function AppLayout() {
           <Route path="/ventas" element={<Ventas />} />
           <Route path="/productos" element={<Productos />} />
           <Route path="/clientes" element={<Clientes />} />
+          <Route path="/duenos" element={<Duenos />} />
           <Route path="/analisis" element={<Analisis />} />
         </Routes>
       </main>

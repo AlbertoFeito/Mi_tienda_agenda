@@ -24,6 +24,7 @@ export const TABLE_NAMES = [
   'customers',
   'installments',
   'installmentPayments',
+  'ownerPayments',
   'settings',
 ] as const;
 

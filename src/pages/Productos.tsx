@@ -169,6 +169,20 @@ export default function Productos() {
 
 function ProductForm({ product, onBack }: { product: Product | null; onBack: () => void }) {
   const { formatPrice, showToast, convertToCUP, currencyRates } = useApp();
+  const ownerSuggestions =
+    useLiveQuery(
+      () =>
+        db.products.toArray().then((ps) =>
+          Array.from(
+            new Set(
+              ps
+                .filter((p) => p.type === 'consignment' && p.ownerName?.trim())
+                .map((p) => p.ownerName!.trim()),
+            ),
+          ),
+        ),
+      [],
+    ) || [];
   const [name, setName] = useState(product?.name || '');
   const [category, setCategory] = useState(product?.category || '');
   const [customCategory, setCustomCategory] = useState('');
@@ -469,8 +483,14 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
               value={ownerName}
               onChange={(e) => setOwnerName(e.target.value)}
               placeholder="Nombre del dueño"
+              list="owner-suggestions"
               className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
             />
+            <datalist id="owner-suggestions">
+              {ownerSuggestions.map((n) => (
+                <option key={n} value={n} />
+              ))}
+            </datalist>
             <input
               type="text"
               value={ownerContact}

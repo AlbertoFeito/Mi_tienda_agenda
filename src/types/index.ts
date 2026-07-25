@@ -81,6 +81,15 @@ export interface InstallmentPayment {
   createdAt: Date;
 }
 
+/** A payment the seller makes to a consignment owner (settlement). */
+export interface OwnerPayment {
+  id?: number;
+  ownerName: string;
+  amount: number; // CUP
+  notes?: string;
+  createdAt: Date;
+}
+
 export interface AppSettings {
   id?: number;
   storeName: string;
