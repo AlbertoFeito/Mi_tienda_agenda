@@ -414,9 +414,6 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
   return (
     <div className="animate-fade-in-up">
       <div className="flex items-center gap-2 mb-4 px-4 pt-4">
-        <button onClick={onBack} className="p-2 rounded-lg active:bg-[#F1F5F9]">
-          <X size={20} className="text-[#475569]" />
-        </button>
         <h2 className="text-lg font-semibold truncate flex-1">{customer.name}</h2>
         <button onClick={onEdit} className="p-2 text-[#0F766E]">
           <span className="text-xs font-medium">Editar</span>

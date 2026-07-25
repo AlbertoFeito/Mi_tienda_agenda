@@ -1,12 +1,33 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from '@/lib/live';
-import { HandCoins, CheckCircle } from 'lucide-react';
+import { HandCoins, CheckCircle, MessageSquare, MessageCircle } from 'lucide-react';
 import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
 import { useBackHandler } from '@/lib/backHandler';
+import { openSms, openWhatsApp } from '@/lib/messaging';
+import { normalizeCubanPhone } from '@/components/PhoneField';
 import NumberField from '@/components/NumberField';
 import { computeOwners, type OwnerSummary } from '@/lib/owners';
 import type { OwnerPayment } from '@/types';
+
+function money(n: number): string {
+  return new Intl.NumberFormat('es-CU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
+function buildOwnerSummary(owner: OwnerSummary, storeName: string): string {
+  const lines: string[] = [];
+  lines.push(`Hola ${owner.ownerName}, resumen de tu liquidación en ${storeName}:`);
+  lines.push(`• Vendido: ${money(owner.totalOwed)} CUP`);
+  lines.push(`• Ya pagado: ${money(owner.totalPaid)} CUP`);
+  lines.push(`• Saldo a pagar: ${money(owner.balance)} CUP`);
+  const sold = owner.products.filter((p) => p.soldQty > 0);
+  if (sold.length) {
+    lines.push('');
+    lines.push('Vendidos:');
+    for (const p of sold) lines.push(`- ${p.product.name}: ${p.soldQty} u. (${money(p.owedCUP)} CUP)`);
+  }
+  return lines.join('\n');
+}
 
 export default function Duenos() {
   const { formatPrice, convertToCUP } = useApp();
@@ -84,10 +105,21 @@ function OwnerDetail({
   payments: OwnerPayment[];
   onBack: () => void;
 }) {
-  const { formatPrice, showToast } = useApp();
+  const { formatPrice, showToast, settings } = useApp();
   const [showPay, setShowPay] = useState(false);
 
   useBackHandler(onBack);
+
+  const sendSummary = async (kind: 'sms' | 'whatsapp') => {
+    const text = buildOwnerSummary(owner, settings?.storeName || 'NayadeStore');
+    const phone = normalizeCubanPhone(owner.contact || '');
+    try {
+      if (kind === 'sms') await openSms(phone, text);
+      else await openWhatsApp(phone, text);
+    } catch {
+      showToast('No se pudo abrir la app de mensajes', 'error');
+    }
+  };
 
   const registerPayment = async (amount: number, notes: string) => {
     if (amount <= 0) {
@@ -144,6 +176,23 @@ function OwnerDetail({
           <HandCoins size={18} />
           Registrar pago al dueño
         </button>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => sendSummary('whatsapp')}
+            className="flex-1 h-11 flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] text-white text-sm font-medium active:scale-[0.98] transition-transform"
+          >
+            <MessageCircle size={16} />
+            Resumen WhatsApp
+          </button>
+          <button
+            onClick={() => sendSummary('sms')}
+            className="flex-1 h-11 flex items-center justify-center gap-1.5 rounded-xl border border-[#0F766E] text-[#0F766E] text-sm font-medium active:scale-[0.98] transition-transform"
+          >
+            <MessageSquare size={16} />
+            SMS
+          </button>
+        </div>
 
         {/* Productos entregados */}
         <div>

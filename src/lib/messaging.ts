@@ -47,5 +47,7 @@ export async function openSms(phone: string, text: string): Promise<void> {
 /** Open WhatsApp with the recipient and message prefilled. */
 export async function openWhatsApp(phone: string, text: string): Promise<void> {
   const digits = normalizeCubanPhone(phone);
-  await openExternal(`whatsapp://send?phone=${CC}${digits}&text=${encodeURIComponent(text)}`);
+  // Without a valid number, open WhatsApp so the user can pick the recipient.
+  const query = digits ? `phone=${CC}${digits}&text=${encodeURIComponent(text)}` : `text=${encodeURIComponent(text)}`;
+  await openExternal(`whatsapp://send?${query}`);
 }
