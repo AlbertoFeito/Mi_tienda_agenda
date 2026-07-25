@@ -65,7 +65,7 @@ export default function Analisis() {
       return d >= start && d <= end;
     });
 
-    const totalSales = filteredSales.reduce((sum, s) => sum + convertToCUP(s.total, s.currency), 0);
+    const totalSales = filteredSales.reduce((sum, s) => sum + s.total, 0);
     const totalProfit = filteredSales.reduce((sum, s) => {
       return sum + s.items.reduce((itemSum, item) => {
         const product = products?.find(p => p.id === item.productId);
@@ -90,7 +90,7 @@ export default function Analisis() {
       const entry = methodData.find(m => m.method === s.paymentMethod);
       if (entry) {
         entry.count++;
-        entry.total += convertToCUP(s.total, s.currency);
+        entry.total += s.total;
       }
     });
     const salesByMethod = methodData.filter(m => m.count > 0);
@@ -109,7 +109,7 @@ export default function Analisis() {
         const key = format(new Date(s.createdAt), 'MMM');
         const entry = daysMap.get(key);
         if (entry) {
-          entry.total += convertToCUP(s.total, s.currency);
+          entry.total += s.total;
         }
       });
     } else {
@@ -122,7 +122,7 @@ export default function Analisis() {
         const key = format(new Date(s.createdAt), period === 'today' ? 'HH:mm' : 'dd/MM');
         if (daysMap.has(key)) {
           const entry = daysMap.get(key)!;
-          entry.total += convertToCUP(s.total, s.currency);
+          entry.total += s.total;
         }
       });
     }

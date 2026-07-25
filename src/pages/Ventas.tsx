@@ -20,7 +20,6 @@ export default function Ventas() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [selectedCurrency, setSelectedCurrency] = useState<Currency>('CUP');
   const [discount, setDiscount] = useState(0);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [numberOfPayments, setNumberOfPayments] = useState(2);
@@ -48,6 +47,25 @@ export default function Ventas() {
   }, 0);
   
   const finalTotal = Math.max(0, cartTotal - discount);
+
+  // Amount to charge grouped by the product's own currency (official price),
+  // so the cashier can charge in that currency or its CUP equivalent.
+  const cartByCurrency = (() => {
+    const map = new Map<Currency, number>();
+    for (const item of cart) {
+      map.set(item.unitCurrency, (map.get(item.unitCurrency) || 0) + item.unitPrice * item.quantity);
+    }
+    return Array.from(map.entries());
+  })();
+
+  // Estimated profit in CUP: revenue (CUP) − cost (CUP) − discount.
+  const estimatedProfit =
+    cart.reduce((profit, item) => {
+      const product = products.find((p) => p.id === item.productId);
+      const saleCUP = convertToCUP(item.unitPrice * item.quantity, item.unitCurrency);
+      const costCUP = product ? convertToCUP(product.costPrice * item.quantity, product.costCurrency) : 0;
+      return profit + (saleCUP - costCUP);
+    }, 0) - discount;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -156,7 +174,7 @@ export default function Ventas() {
         const saleId = await db.sales.add({
           items: saleItems,
           total: finalTotal,
-          currency: selectedCurrency,
+          currency: 'CUP',
           paymentMethod,
           customerId: selectedCustomerId || undefined,
           customerName: selectedCustomer?.name,
@@ -356,6 +374,9 @@ export default function Ventas() {
                       <p className="font-medium text-gray-900 truncate">{item.productName}</p>
                       <p className="text-sm text-gray-500">
                         {formatPrice(item.unitPrice, item.unitCurrency)} c/u
+                        {item.unitCurrency !== 'CUP' && (
+                          <span className="text-[#0F766E]"> · {formatPrice(convertToCUP(item.unitPrice, item.unitCurrency), 'CUP')}</span>
+                        )}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -468,7 +489,7 @@ export default function Ventas() {
                   {selectedCustomer && (
                     <div className="bg-[#F0FDFA] rounded-xl p-3 space-y-2">
                       <p className="text-sm font-medium text-[#0F766E]">
-                        Valor por cuota: {formatPrice(finalTotal / numberOfPayments, selectedCurrency)}
+                        Valor por cuota: {formatPrice(finalTotal / numberOfPayments, 'CUP')}
                       </p>
                       <div className="flex gap-2">
                         <button
@@ -511,26 +532,6 @@ export default function Ventas() {
                 </div>
               )}
 
-              {/* Moneda */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Moneda</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(['CUP', 'USD', 'EUR', 'MLC'] as Currency[]).map(currency => (
-                    <button
-                      key={currency}
-                      onClick={() => setSelectedCurrency(currency)}
-                      className={`py-2 rounded-xl border-2 text-sm font-medium transition-all ${
-                        selectedCurrency === currency
-                          ? 'border-[#0F766E] bg-[#0F766E]/5 text-[#0F766E]'
-                          : 'border-gray-200 text-gray-600'
-                      }`}
-                    >
-                      {currency}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Descuento */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Descuento (CUP)</label>
@@ -539,8 +540,20 @@ export default function Ventas() {
 
               {/* Totales */}
               <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                {/* Precio oficial en la moneda de cada producto + su cambio en CUP */}
+                {cartByCurrency
+                  .filter(([cur]) => cur !== 'CUP')
+                  .map(([cur, amount]) => (
+                    <div key={cur} className="flex justify-between text-sm">
+                      <span className="text-gray-600">A cobrar en {cur}</span>
+                      <span className="font-medium text-right">
+                        {formatPrice(amount, cur)}
+                        <span className="text-gray-400"> · {formatPrice(convertToCUP(amount, cur), 'CUP')}</span>
+                      </span>
+                    </div>
+                  ))}
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subtotal</span>
+                  <span className="text-gray-600">Subtotal (CUP)</span>
                   <span className="font-medium">{formatPrice(cartTotal, 'CUP')}</span>
                 </div>
                 {discount > 0 && (
@@ -550,8 +563,14 @@ export default function Ventas() {
                   </div>
                 )}
                 <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
-                  <span>Total</span>
+                  <span>Total (CUP)</span>
                   <span className="text-[#0F766E]">{formatPrice(finalTotal, 'CUP')}</span>
+                </div>
+                <div className="flex justify-between text-sm pt-1">
+                  <span className="text-gray-600">Ganancia estimada</span>
+                  <span className={`font-semibold ${estimatedProfit >= 0 ? 'text-[#059669]' : 'text-red-500'}`}>
+                    {formatPrice(estimatedProfit, 'CUP')}
+                  </span>
                 </div>
               </div>
               

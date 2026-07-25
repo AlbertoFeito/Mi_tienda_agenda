@@ -31,9 +31,7 @@ export default function Dashboard() {
       return d >= todayStart && d <= todayEnd;
     });
 
-    const todaySalesTotal = todaySalesList.reduce((sum, s) => {
-      return sum + convertToCUP(s.total, s.currency);
-    }, 0);
+    const todaySalesTotal = todaySalesList.reduce((sum, s) => sum + s.total, 0);
 
     // Calcular ganancia de hoy: (precio venta - precio costo) por producto
     const todayProfit = todaySalesList.reduce((sum, s) => {

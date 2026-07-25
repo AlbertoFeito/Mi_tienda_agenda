@@ -168,7 +168,7 @@ export default function Productos() {
 }
 
 function ProductForm({ product, onBack }: { product: Product | null; onBack: () => void }) {
-  const { formatPrice, showToast } = useApp();
+  const { formatPrice, showToast, convertToCUP, currencyRates } = useApp();
   const [name, setName] = useState(product?.name || '');
   const [category, setCategory] = useState(product?.category || '');
   const [customCategory, setCustomCategory] = useState('');
@@ -263,10 +263,26 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
     }
   };
 
+  // Convert a CUP amount back into a given currency using the rates.
+  const fromCUP = (amountCUP: number, currency: Currency): number => {
+    if (currency === 'USD') return amountCUP / currencyRates.USD;
+    if (currency === 'EUR') return amountCUP / currencyRates.EUR;
+    if (currency === 'MLC') return amountCUP / currencyRates.MLC;
+    return amountCUP;
+  };
+
+  // Live profit in the official currency (CUP) for any product type.
+  const costInCUP = convertToCUP(costPrice, costCurrency);
+  const profitPerUnitCUP = convertToCUP(salePrice, saleCurrency) - costInCUP;
+  const marginPercent = costInCUP > 0 ? Math.round((profitPerUnitCUP / costInCUP) * 100) : 0;
+
+  // Suggested sale price (in the sale currency) for consignment products.
   const suggestedSalePrice = useMemo(() => {
     if (type !== 'consignment' || costPrice <= 0) return 0;
-    return costPrice * (1 + profitPercent / 100);
-  }, [type, costPrice, profitPercent]);
+    const desiredSaleCUP = convertToCUP(costPrice, costCurrency) * (1 + profitPercent / 100);
+    return fromCUP(desiredSaleCUP, saleCurrency);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, costPrice, costCurrency, saleCurrency, profitPercent, currencyRates]);
 
   return (
     <div className="animate-fade-in-up">
@@ -386,16 +402,37 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
           <NumberField value={salePrice} onChange={setSalePrice} decimals placeholder="0.00" />
         </div>
 
-        {/* Calculadora de ganancia para productos ajenos */}
+        {/* Ganancia por unidad (todo tipo de producto) */}
+        {costPrice > 0 && salePrice > 0 && (
+          <div className="flex items-center justify-between bg-[#F0FDFA] rounded-xl px-3 py-2.5">
+            <span className="text-sm text-[#475569]">Ganancia por unidad</span>
+            <span className={`text-sm font-bold ${profitPerUnitCUP >= 0 ? 'text-[#059669]' : 'text-red-500'}`}>
+              {formatPrice(profitPerUnitCUP, 'CUP')}
+              {costInCUP > 0 && <span className="text-xs font-normal text-[#94A3B8]"> ({marginPercent}%)</span>}
+            </span>
+          </div>
+        )}
+
+        {/* Calculadora de precio sugerido para productos ajenos */}
         {type === 'consignment' && costPrice > 0 && (
           <div className="bg-[#F0FDFA] rounded-xl p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-[#475569]">% Ganancia</span>
-              <NumberField value={profitPercent} onChange={setProfitPercent} min={0} max={500} step={5} className="w-44" />
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-[#475569]">% Ganancia deseada</span>
+              <NumberField value={profitPercent} onChange={setProfitPercent} min={0} max={500} step={5} className="w-40" />
             </div>
-            <p className="text-sm font-medium text-[#0F766E]">
-              Precio sugerido: {formatPrice(suggestedSalePrice, costCurrency)}
-            </p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[#475569]">Precio de venta sugerido</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-[#0F766E]">{formatPrice(suggestedSalePrice, saleCurrency)}</span>
+                <button
+                  type="button"
+                  onClick={() => setSalePrice(Number(suggestedSalePrice.toFixed(2)))}
+                  className="text-xs font-medium text-white bg-[#0F766E] px-2.5 py-1 rounded-lg active:scale-95"
+                >
+                  Aplicar
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
