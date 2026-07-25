@@ -278,6 +278,9 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
     }
   };
 
+  // The registered owner behind the selected name, when there is one.
+  const registeredOwner = dbOwners.find((o) => o.name === ownerName) || null;
+
   // Convert a CUP amount back into a given currency using the rates.
   const fromCUP = (amountCUP: number, currency: Currency): number => {
     if (currency === 'USD') return amountCUP / currencyRates.USD;
@@ -495,18 +498,22 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
                 </option>
               ))}
             </select>
-            {ownerContact && (
-              <p className="text-xs text-[#94A3B8] p-2 bg-[#F1F5F9] rounded-lg">
-                Contacto: {ownerContact}
+            {registeredOwner ? (
+              <p className="text-xs text-[#475569] px-3 py-2 bg-[#F0FDFA] rounded-lg">
+                Contacto: {registeredOwner.phone ? `+53 ${registeredOwner.phone}` : 'sin teléfono guardado'}
               </p>
+            ) : (
+              <input
+                type="text"
+                value={ownerContact}
+                onChange={(e) => setOwnerContact(e.target.value)}
+                placeholder="Contacto del dueño"
+                className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
+              />
             )}
-            <input
-              type="text"
-              value={ownerContact}
-              onChange={(e) => setOwnerContact(e.target.value)}
-              placeholder="O ingresa un contacto personalizado"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-            />
+            <p className="text-xs text-[#94A3B8]">
+              Los dueños se crean y editan en la pestaña “Dueños”.
+            </p>
           </div>
         )}
 

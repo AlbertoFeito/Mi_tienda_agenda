@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { computeOwners } from '@/lib/owners';
-import type { Product, Sale, OwnerPayment, Currency } from '@/types';
+import type { Product, Sale, Owner, OwnerPayment, Currency } from '@/types';
 
 const cup = (amount: number, _currency: Currency) => amount; // CUP-only test
 
@@ -62,5 +62,38 @@ describe('computeOwners (consignment settlement)', () => {
     const products = [product({ id: 1, ownerName: undefined })];
     const [owner] = computeOwners(products, [], [], cup);
     expect(owner.ownerName).toBe('Sin dueño');
+  });
+
+  it('lists a registered owner that has not handed over any product yet', () => {
+    const registered: Owner[] = [
+      { id: 7, name: 'Marta', phone: '55512345', createdAt: new Date(), updatedAt: new Date() },
+    ];
+    const [owner] = computeOwners([], [], [], cup, registered);
+    expect(owner.ownerName).toBe('Marta');
+    expect(owner.ownerId).toBe(7);
+    expect(owner.contact).toBe('55512345');
+    expect(owner.products).toHaveLength(0);
+    expect(owner.balance).toBe(0);
+  });
+
+  it('prefers the registered phone over the contact typed on a product', () => {
+    const products = [product({ id: 1, ownerName: 'Juan', ownerContact: 'viejo' })];
+    const registered: Owner[] = [
+      { id: 3, name: 'Juan', phone: '55599999', createdAt: new Date(), updatedAt: new Date() },
+    ];
+    const [owner] = computeOwners(products, [], [], cup, registered);
+    expect(computeOwners(products, [], [], cup, registered)).toHaveLength(1);
+    expect(owner.contact).toBe('55599999');
+    expect(owner.ownerId).toBe(3);
+  });
+
+  it('keeps payments made to a registered owner with no products', () => {
+    const registered: Owner[] = [
+      { id: 1, name: 'Ana', createdAt: new Date(), updatedAt: new Date() },
+    ];
+    const payments: OwnerPayment[] = [{ ownerName: 'Ana', amount: 250, createdAt: new Date() }];
+    const [owner] = computeOwners([], [], payments, cup, registered);
+    expect(owner.totalPaid).toBe(250);
+    expect(owner.balance).toBe(-250); // paid in advance
   });
 });

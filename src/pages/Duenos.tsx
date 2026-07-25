@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useLiveQuery } from '@/lib/live';
-import { HandCoins, CheckCircle, MessageSquare, MessageCircle, Plus, Phone } from 'lucide-react';
+import { HandCoins, CheckCircle, MessageSquare, MessageCircle, Plus, Phone, Users, Pencil } from 'lucide-react';
 import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
 import { useBackHandler } from '@/lib/backHandler';
@@ -44,10 +44,12 @@ export default function Duenos() {
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
   const [editingOwner, setEditingOwner] = useState<Owner | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  // Where the owner form should return to when it closes.
+  const [formOrigin, setFormOrigin] = useState<'management' | 'detail'>('management');
 
   const computedOwners = useMemo(
-    () => computeOwners(products, sales, ownerPayments, convertToCUP),
-    [products, sales, ownerPayments, convertToCUP],
+    () => computeOwners(products, sales, ownerPayments, convertToCUP, owners),
+    [products, sales, ownerPayments, convertToCUP, owners],
   );
 
   const selectedComputedOwner = selectedOwner
@@ -58,10 +60,13 @@ export default function Duenos() {
     const payments = ownerPayments.filter(
       (p) => ((p.ownerName || '').trim() || 'Sin dueño') === selectedComputedOwner.ownerName,
     );
+    const registered = owners.find((o) => o.name === selectedComputedOwner.ownerName) || null;
     return (
       <OwnerDetail
         owner={selectedComputedOwner}
         payments={payments}
+        registered={registered}
+        onEdit={() => { setEditingOwner(registered); setFormOrigin('detail'); setView('form'); }}
         onBack={() => { setSelectedOwner(null); setView('settlement'); }}
       />
     );
@@ -73,8 +78,8 @@ export default function Duenos() {
         owners={owners}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onEdit={(owner) => { setEditingOwner(owner); setView('form'); }}
-        onCreate={() => { setEditingOwner(null); setView('form'); }}
+        onEdit={(owner) => { setEditingOwner(owner); setFormOrigin('management'); setView('form'); }}
+        onCreate={() => { setEditingOwner(null); setFormOrigin('management'); setView('form'); }}
         onSelectOwner={(owner) => { setSelectedOwner(owner.name); setView('detail'); }}
         onBack={() => setView('settlement')}
       />
@@ -85,7 +90,8 @@ export default function Duenos() {
     return (
       <OwnerForm
         owner={editingOwner}
-        onBack={() => { setEditingOwner(null); setView('management'); }}
+        onSaved={(savedName) => { if (formOrigin === 'detail') setSelectedOwner(savedName); }}
+        onBack={() => { setEditingOwner(null); setView(formOrigin); }}
       />
     );
   }
@@ -99,9 +105,10 @@ export default function Duenos() {
         </div>
         <button
           onClick={() => setView('management')}
-          className="w-10 h-10 bg-[#0F766E] text-white rounded-full shadow-sm flex items-center justify-center active:scale-90 transition-transform"
+          className="flex-shrink-0 h-10 px-3 flex items-center gap-1.5 bg-[#0F766E] text-white rounded-full shadow-sm text-sm font-medium active:scale-95 transition-transform"
         >
-          <Phone size={18} />
+          <Users size={16} />
+          Gestionar
         </button>
       </div>
 
@@ -250,7 +257,15 @@ function OwnerManagement({
   );
 }
 
-function OwnerForm({ owner, onBack }: { owner: Owner | null; onBack: () => void }) {
+function OwnerForm({
+  owner,
+  onSaved,
+  onBack,
+}: {
+  owner: Owner | null;
+  onSaved?: (name: string) => void;
+  onBack: () => void;
+}) {
   const { showToast } = useApp();
   const [name, setName] = useState(owner?.name || '');
   const [phone, setPhone] = useState(owner?.phone || '');
@@ -259,17 +274,11 @@ function OwnerForm({ owner, onBack }: { owner: Owner | null; onBack: () => void 
   const [contactsAvailable, setContactsAvailable] = useState(false);
 
   const handlePickContact = async () => {
-    try {
-      const contact = await pickPhoneContact();
-      if (contact?.phone) {
-        setPhone(contact.phone);
-      }
-    } catch (err: unknown) {
-      const error = err as Record<string, unknown>;
-      if (error.message !== 'User cancelled.') {
-        showToast('Error al seleccionar contacto', 'error');
-      }
-    }
+    const contact = await pickPhoneContact();
+    if (!contact) return;
+    if (contact.phone) setPhone(contact.phone);
+    if (contact.name && !name.trim()) setName(contact.name);
+    if (!contact.phone) showToast('Ese contacto no tiene teléfono', 'warning');
   };
 
   const handleSubmit = async () => {
@@ -282,10 +291,13 @@ function OwnerForm({ owner, onBack }: { owner: Owner | null; onBack: () => void 
       return;
     }
 
+    const cleanName = name.trim();
+    const cleanPhone = phone ? normalizeCubanPhone(phone) : undefined;
+
     try {
       const data = {
-        name: name.trim(),
-        phone: phone ? normalizeCubanPhone(phone) : undefined,
+        name: cleanName,
+        phone: cleanPhone,
         email: email.trim() || undefined,
         createdAt: owner?.createdAt || new Date(),
         updatedAt: new Date(),
@@ -293,20 +305,36 @@ function OwnerForm({ owner, onBack }: { owner: Owner | null; onBack: () => void 
 
       if (owner?.id) {
         await db.owners.update(owner.id, data);
+        // Products and settlement payments reference the owner by name, so a
+        // rename has to carry them along or the liquidación would split in two.
+        if (owner.name !== cleanName) {
+          const products = await db.products.toArray();
+          for (const p of products) {
+            if (p.id != null && (p.ownerName || '').trim() === owner.name) {
+              await db.products.update(p.id, { ownerName: cleanName });
+            }
+          }
+          const payments = await db.ownerPayments.toArray();
+          for (const pay of payments) {
+            if (pay.id != null && (pay.ownerName || '').trim() === owner.name) {
+              await db.ownerPayments.update(pay.id, { ownerName: cleanName });
+            }
+          }
+        }
         showToast('Dueño actualizado', 'success');
       } else {
         await db.owners.add(data);
-        if (saveToContacts && phone) {
-          try {
-            await savePhoneContact(name.trim(), phone);
-            showToast('Dueño guardado y contacto guardado en el dispositivo', 'success');
-          } catch {
-            showToast('Dueño guardado (pero no en contactos)', 'success');
-          }
+        if (saveToContacts && cleanPhone) {
+          const saved = await savePhoneContact(cleanName, cleanPhone);
+          showToast(
+            saved ? 'Dueño guardado y añadido a tus contactos' : 'Dueño guardado (no se pudo añadir a contactos)',
+            'success',
+          );
         } else {
           showToast('Dueño guardado', 'success');
         }
       }
+      onSaved?.(cleanName);
       onBack();
     } catch {
       showToast('Error al guardar', 'error');
@@ -339,18 +367,17 @@ function OwnerForm({ owner, onBack }: { owner: Owner | null; onBack: () => void 
 
         <div>
           <label className="text-sm font-medium text-[#475569] block mb-1">Teléfono</label>
-          <div className="flex gap-2">
-            <PhoneField value={phone} onChange={setPhone} />
-            {contactsAvailable && (
-              <button
-                type="button"
-                onClick={handlePickContact}
-                className="flex-shrink-0 w-12 h-12 border border-[#0F766E] text-[#0F766E] rounded-lg font-medium active:scale-95 transition-transform"
-              >
-                <Phone size={18} className="mx-auto" />
-              </button>
-            )}
-          </div>
+          <PhoneField value={phone} onChange={setPhone} />
+          {contactsAvailable && (
+            <button
+              type="button"
+              onClick={handlePickContact}
+              className="w-full h-11 mt-2 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-lg text-sm font-medium active:scale-[0.98] transition-transform"
+            >
+              <Phone size={16} />
+              Elegir de contactos
+            </button>
+          )}
         </div>
 
         <div>
@@ -390,10 +417,14 @@ function OwnerForm({ owner, onBack }: { owner: Owner | null; onBack: () => void 
 function OwnerDetail({
   owner,
   payments,
+  registered,
+  onEdit,
   onBack,
 }: {
   owner: OwnerSummary;
   payments: OwnerPayment[];
+  registered: Owner | null;
+  onEdit: () => void;
   onBack: () => void;
 }) {
   const { formatPrice, showToast, settings } = useApp();
@@ -429,12 +460,21 @@ function OwnerDetail({
 
   return (
     <div className="animate-fade-in-up">
-      <div className="flex items-center gap-2 mb-4 px-4 pt-4">
+      <div className="flex items-center justify-between gap-2 mb-4 px-4 pt-4">
         <h2 className="text-lg font-semibold truncate">{owner.ownerName}</h2>
+        {registered && (
+          <button
+            onClick={onEdit}
+            className="flex-shrink-0 h-9 px-3 flex items-center gap-1.5 border border-[#0F766E] text-[#0F766E] rounded-lg text-sm font-medium active:scale-95 transition-transform"
+          >
+            <Pencil size={14} />
+            Editar
+          </button>
+        )}
       </div>
 
       <div className="px-4 pb-8 space-y-4">
-        {owner.contact && <p className="text-sm text-[#475569] -mt-2">Contacto: {owner.contact}</p>}
+        {owner.contact && <p className="text-sm text-[#475569] -mt-2">Contacto: +53 {owner.contact}</p>}
 
         <div className="bg-white rounded-2xl shadow-sm p-4">
           <div className="flex items-center justify-between">

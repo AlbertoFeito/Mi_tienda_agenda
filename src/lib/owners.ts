@@ -1,4 +1,4 @@
-import type { Product, Sale, OwnerPayment, Currency } from '@/types';
+import type { Product, Sale, Owner, OwnerPayment, Currency } from '@/types';
 
 /**
  * Consignment settlement ("liquidación por dueño").
@@ -20,6 +20,8 @@ export interface OwnerProductInfo {
 export interface OwnerSummary {
   ownerName: string;
   contact?: string;
+  /** Id in the owners table, when the owner is registered in "Gestionar dueños". */
+  ownerId?: number;
   products: OwnerProductInfo[];
   totalOwed: number; // CUP owed to the owner for everything sold
   totalPaid: number; // CUP already paid to the owner
@@ -35,6 +37,7 @@ export function computeOwners(
   sales: Sale[],
   ownerPayments: OwnerPayment[],
   convertToCUP: (amount: number, currency: Currency) => number,
+  registeredOwners: Owner[] = [],
 ): OwnerSummary[] {
   // Units sold and revenue (CUP) per product, from the sales history.
   const soldQty = new Map<number, number>();
@@ -84,6 +87,31 @@ export function computeOwners(
     entry.totalOwed += owedCUP;
     entry.profit += profitCUP;
     if (product.stock > 0) entry.activeProducts += 1;
+  }
+
+  // Owners registered in "Gestionar dueños" always show up, even before they
+  // have handed over any product, and their saved phone wins over the loose
+  // contact typed on a product.
+  for (const reg of registeredOwners) {
+    const name = (reg.name || '').trim();
+    if (!name) continue;
+    if (!owners.has(name)) {
+      owners.set(name, {
+        ownerName: name,
+        contact: reg.phone,
+        ownerId: reg.id,
+        products: [],
+        totalOwed: 0,
+        totalPaid: paidByOwner.get(name) || 0,
+        balance: 0,
+        profit: 0,
+        activeProducts: 0,
+      });
+    } else {
+      const entry = owners.get(name)!;
+      entry.ownerId = reg.id;
+      if (reg.phone) entry.contact = reg.phone;
+    }
   }
 
   const result = Array.from(owners.values());

@@ -249,7 +249,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
 
             <div className="text-center pt-4">
-              <p className="text-xs text-[#94A3B8]">NayadeStore v2.2</p>
+              <p className="text-xs text-[#94A3B8]">NayadeStore v2.3</p>
               <p className="text-xs text-[#94A3B8]">Gestión comercial offline</p>
             </div>
           </div>
