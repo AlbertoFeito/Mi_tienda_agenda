@@ -14,9 +14,22 @@ function pad(n: number): string {
   return String(n).padStart(2, '0');
 }
 
-function backupFilename(): string {
+/** The store name, reduced to something safe to use inside a filename. */
+function slug(name: string): string {
+  const clean = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return clean || 'MiTienda';
+}
+
+/** Name the backup after the user's own store, so she can spot it later. */
+async function backupFilename(): Promise<string> {
+  const row = (await db.settings.toArray())[0];
   const d = new Date();
-  return `NayadeStore-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`;
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return `${slug(row?.storeName || '')}-copia-${date}.json`;
 }
 
 async function markBackedUp(shared = false): Promise<void> {
@@ -43,7 +56,7 @@ function downloadInBrowser(json: string, filename: string): void {
 /** Write a persistent backup file (Documents on device). Returns its URI. */
 export async function createBackupFile(): Promise<string | undefined> {
   const json = await exportData();
-  const filename = backupFilename();
+  const filename = await backupFilename();
 
   if (!Capacitor.isNativePlatform()) {
     downloadInBrowser(json, filename);
@@ -67,7 +80,7 @@ export async function createBackupFile(): Promise<string | undefined> {
 /** Create a backup and open the system share sheet so the user can store it. */
 export async function shareBackup(): Promise<void> {
   const json = await exportData();
-  const filename = backupFilename();
+  const filename = await backupFilename();
 
   if (!Capacitor.isNativePlatform()) {
     downloadInBrowser(json, filename);
@@ -80,9 +93,10 @@ export async function shareBackup(): Promise<void> {
   await Filesystem.writeFile({ path: filename, data: json, directory: Directory.Cache, encoding: Encoding.UTF8, recursive: true });
   const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
   await markBackedUp(true);
+  const store = (await db.settings.toArray())[0]?.storeName?.trim() || 'Mi Tienda';
   await Share.share({
-    title: 'Copia de seguridad NayadeStore',
-    text: 'Copia de seguridad de NayadeStore',
+    title: `Copia de seguridad de ${store}`,
+    text: `Copia de seguridad de ${store}`,
     url: uri,
   });
 }

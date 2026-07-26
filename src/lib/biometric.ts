@@ -16,16 +16,24 @@ export async function biometricAvailable(): Promise<boolean> {
   }
 }
 
-/** Prompt for biometric auth. Resolves true on success, false otherwise. */
-export async function biometricAuthenticate(reason = 'Desbloquea NayadeStore'): Promise<boolean> {
+/**
+ * Prompt for biometric auth. Resolves true on success, false otherwise.
+ *
+ * The store name is passed in so the system dialog says the name the user gave
+ * their own shop, the same one shown everywhere else in the app.
+ */
+export async function biometricAuthenticate(
+  opts: { reason?: string; storeName?: string } = {},
+): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return false;
+  const store = opts.storeName?.trim() || 'tu tienda';
   try {
     const { BiometricAuth } = await import('@aparajita/capacitor-biometric-auth');
     await BiometricAuth.authenticate({
-      reason,
+      reason: opts.reason ?? `Desbloquea ${store}`,
       cancelTitle: 'Cancelar',
       allowDeviceCredential: false,
-      androidTitle: 'Desbloquear NayadeStore',
+      androidTitle: `Desbloquear ${store}`,
       androidSubtitle: 'Usa tu huella para entrar',
       androidConfirmationRequired: false,
     });

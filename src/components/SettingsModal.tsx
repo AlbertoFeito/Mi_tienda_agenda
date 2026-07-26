@@ -41,7 +41,10 @@ export default function SettingsModal({
       showToast('Desbloqueo por huella desactivado', 'success');
       return;
     }
-    const ok = await biometricAuthenticate('Confirma tu huella para activarla');
+    const ok = await biometricAuthenticate({
+      reason: 'Confirma tu huella para activarla',
+      storeName: settings?.storeName,
+    });
     if (!ok) {
       showToast('No se pudo verificar la huella', 'error');
       return;
@@ -255,7 +258,7 @@ export default function SettingsModal({
             </div>
 
             <div className="text-center pt-4">
-              <p className="text-xs text-[#94A3B8]">NayadeStore v2.5</p>
+              <p className="text-xs text-[#94A3B8]">NayadeStore v2.6</p>
               <p className="text-xs text-[#94A3B8]">Gestión comercial offline</p>
             </div>
           </div>

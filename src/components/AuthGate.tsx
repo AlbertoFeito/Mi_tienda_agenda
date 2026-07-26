@@ -44,7 +44,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     if (promptedRef.current) return;
     promptedRef.current = true;
     let active = true;
-    biometricAuthenticate().then((ok) => {
+    biometricAuthenticate({ storeName: settings?.storeName }).then((ok) => {
       if (active && ok) setUnlocked(true);
     });
     return () => {
@@ -90,6 +90,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     return (
       <LockScreen
         mode="setup"
+        storeName={settings.storeName}
         onSubmit={async (pin) => {
           await setPin(pin);
           setUnlocked(true);
@@ -102,6 +103,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   return (
     <LockScreen
       mode="enter"
+      storeName={settings.storeName}
       onSubmit={async (pin) => {
         const ok = await verifyPin(pin);
         if (ok) setUnlocked(true);
@@ -110,7 +112,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
       onBiometric={
         canBiometric
           ? async () => {
-              if (await biometricAuthenticate()) setUnlocked(true);
+              if (await biometricAuthenticate({ storeName: settings?.storeName })) setUnlocked(true);
             }
           : undefined
       }

@@ -9,13 +9,15 @@ interface LockScreenProps {
   onSubmit: (pin: string) => Promise<boolean>;
   /** When provided (enter mode), shows a "use fingerprint" button. */
   onBiometric?: () => void;
+  /** The user's own store name, shown instead of the app's. */
+  storeName?: string;
 }
 
 /**
  * Full-screen PIN lock. In "setup" mode it asks for the PIN twice; in "enter"
  * mode it validates against the stored PIN via `onSubmit`.
  */
-export default function LockScreen({ mode, onSubmit, onBiometric }: LockScreenProps) {
+export default function LockScreen({ mode, onSubmit, onBiometric, storeName }: LockScreenProps) {
   const [pin, setPin] = useState('');
   const [firstPin, setFirstPin] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -26,7 +28,7 @@ export default function LockScreen({ mode, onSubmit, onBiometric }: LockScreenPr
     ? (confirming ? 'Repite el PIN' : 'Crea un PIN')
     : 'Introduce tu PIN';
   const subtitle = mode === 'setup'
-    ? 'Protege el acceso a NayadeStore con un PIN de 4 dígitos.'
+    ? `Protege el acceso a ${storeName?.trim() || 'tu tienda'} con un PIN de 4 dígitos.`
     : 'Ingresa tu PIN para continuar.';
 
   const handleComplete = async (fullPin: string) => {

@@ -6,15 +6,17 @@ import SettingsModal from './SettingsModal';
 import HelpModal from './HelpModal';
 
 export default function Header({ onReplayTour }: { onReplayTour: () => void }) {
-  const { settingsTab, openSettings, closeSettings } = useApp();
+  const { settings, settingsTab, openSettings, closeSettings } = useApp();
   const [showHelp, setShowHelp] = useState(false);
   const location = useLocation();
 
   return (
     <>
       <header className="fixed top-0 left-0 right-0 h-14 bg-[#134E4A] text-white flex items-center justify-between px-4 z-50 shadow-sm max-w-lg mx-auto">
-        <h1 className="text-lg font-bold tracking-tight">MiTienda</h1>
-        <div className="flex items-center">
+        <h1 className="text-lg font-bold tracking-tight truncate mr-2">
+          {settings?.storeName?.trim() || 'Mi Tienda'}
+        </h1>
+        <div className="flex items-center flex-shrink-0">
           <button
             onClick={() => setShowHelp(true)}
             className="p-2 rounded-lg active:scale-95 active:opacity-80 transition-transform"
