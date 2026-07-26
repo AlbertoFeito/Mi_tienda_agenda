@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import {
   TRIAL_DAYS,
   computeLicence,
@@ -112,6 +113,44 @@ describe('the seller tool matches the app', () => {
     ).trim();
     // If these ever drift, every licence sold would be rejected on the phone.
     expect(fromScript).toBe(fromApp);
+  });
+});
+
+describe('the offline HTML generator matches the app', () => {
+  // The seller may only have a phone, so the HTML tool carries its own
+  // hand-written SHA-256. If it drifted from the app, every licence issued
+  // from it would be rejected — hence checking the real file, not a copy.
+  function loadHtmlGenerator() {
+    const html = readFileSync('herramientas/generador-licencias.html', 'utf8');
+    const core = html.match(/<script id="core">([\s\S]*?)<\/script>/);
+    if (!core) throw new Error('no se encontró el bloque <script id="core">');
+    const module = { exports: {} as Record<string, unknown> };
+    new Function('module', core[1])(module);
+    return module.exports as {
+      calcularLicencia(equipo: string, secreto: string): string;
+      normalizar(raw: string): string;
+    };
+  }
+
+  it('produces the same licence as the app', async () => {
+    const gen = loadHtmlGenerator();
+    expect(gen.calcularLicencia(DEVICE, SECRET)).toBe(await computeLicence(DEVICE, SECRET));
+  });
+
+  it('agrees across many random devices and secrets', async () => {
+    const gen = loadHtmlGenerator();
+    for (let i = 0; i < 25; i++) {
+      const device = newDeviceId();
+      const secret = `secreto-${i}-ñ-áéí`; // non-ASCII: exercises the UTF-8 encoder
+      expect(gen.calcularLicencia(device, secret)).toBe(await computeLicence(device, secret));
+    }
+  });
+
+  it('normalizes codes the same way', () => {
+    const gen = loadHtmlGenerator();
+    for (const raw of ['7k3m9-2qxbd', ' O12 ', 'IL23', 'B587X-7WC16']) {
+      expect(gen.normalizar(raw)).toBe(normalizeCode(raw));
+    }
   });
 });
 
