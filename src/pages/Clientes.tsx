@@ -1,7 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { useLiveQuery } from '@/lib/live';
+import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle, MessageSquare, MessageCircle, Contact } from 'lucide-react';
 import { db } from '@/lib/db';
+import { useBackHandler } from '@/lib/backHandler';
+import NumberField from '@/components/NumberField';
+import PhoneField, { isValidCubanPhone, normalizeCubanPhone } from '@/components/PhoneField';
+import { buildReminderMessage, openSms, openWhatsApp } from '@/lib/messaging';
+import { pickPhoneContact, savePhoneContact, contactsSupported } from '@/lib/contacts';
 import { useApp } from '@/contexts/AppContext';
 import type { Customer, Installment, InstallmentPayment, PaymentMethod } from '@/types';
 
@@ -212,15 +217,34 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
   const [address, setAddress] = useState(customer?.address || '');
   const [notes, setNotes] = useState(customer?.notes || '');
 
+  useBackHandler(onBack);
+
+  const canContacts = contactsSupported();
+  const [saveToContacts, setSaveToContacts] = useState(false);
+
+  const handlePickContact = async () => {
+    const picked = await pickPhoneContact();
+    if (!picked) {
+      showToast('No se pudo obtener el contacto', 'warning');
+      return;
+    }
+    if (picked.name) setName(picked.name);
+    if (picked.phone) setPhone(picked.phone);
+  };
+
   const handleSubmit = async () => {
     if (!name.trim()) {
       showToast('El nombre es obligatorio', 'error');
       return;
     }
+    if (!isValidCubanPhone(phone)) {
+      showToast('El teléfono debe tener 8 dígitos (Cuba)', 'error');
+      return;
+    }
 
     const data = {
       name: name.trim(),
-      phone: phone.trim() || undefined,
+      phone: normalizeCubanPhone(phone) || undefined,
       address: address.trim() || undefined,
       notes: notes.trim() || undefined,
       createdAt: customer?.createdAt || new Date(),
@@ -232,7 +256,12 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
         showToast('Cliente actualizado', 'success');
       } else {
         await db.customers.add(data);
-        showToast('Cliente agregado', 'success');
+        if (saveToContacts && canContacts) {
+          const ok = await savePhoneContact(data.name, normalizeCubanPhone(phone));
+          showToast(ok ? 'Cliente agregado y guardado en contactos' : 'Cliente agregado', 'success');
+        } else {
+          showToast('Cliente agregado', 'success');
+        }
       }
       onSave();
     } catch {
@@ -243,13 +272,20 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
   return (
     <div className="animate-fade-in-up">
       <div className="flex items-center gap-2 mb-4 px-4 pt-4">
-        <button onClick={onBack} className="p-2 rounded-lg active:bg-[#F1F5F9]">
-          <X size={20} className="text-[#475569]" />
-        </button>
         <h2 className="text-lg font-semibold">{customer ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
       </div>
 
       <div className="space-y-4 pb-8 px-4">
+        {canContacts && (
+          <button
+            type="button"
+            onClick={handlePickContact}
+            className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-xl font-medium active:scale-[0.98] transition-transform"
+          >
+            <Contact size={18} />
+            Elegir de contactos
+          </button>
+        )}
         <div>
           <label className="text-sm font-medium text-[#475569] block mb-1">Nombre completo *</label>
           <input
@@ -262,14 +298,19 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
         </div>
         <div>
           <label className="text-sm font-medium text-[#475569] block mb-1">Teléfono</label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Número de teléfono"
-            className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-          />
+          <PhoneField value={phone} onChange={setPhone} />
         </div>
+        {canContacts && !customer && (
+          <label className="flex items-center gap-3 px-1 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={saveToContacts}
+              onChange={(e) => setSaveToContacts(e.target.checked)}
+              className="w-5 h-5 accent-[#0F766E]"
+            />
+            <span className="text-sm text-[#475569]">Guardar también en los contactos del teléfono</span>
+          </label>
+        )}
         <div>
           <label className="text-sm font-medium text-[#475569] block mb-1">Dirección</label>
           <input
@@ -308,10 +349,33 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
   onBack: () => void;
   onEdit: () => void;
 }) {
-  const { formatPrice, showToast } = useApp();
+  const { formatPrice, showToast, settings } = useApp();
   const [detailTab, setDetailTab] = useState<'debts' | 'payments'>('debts');
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState<Installment | null>(null);
+
+  useBackHandler(onBack);
+
+  const storeName = settings?.storeName || 'NayadeStore';
+
+  const sendReminder = async (
+    kind: 'sms' | 'whatsapp',
+    amount: number,
+    dueDate: Date,
+    overdue: boolean,
+  ) => {
+    if (!customer.phone) {
+      showToast('Este cliente no tiene teléfono guardado', 'warning');
+      return;
+    }
+    const text = buildReminderMessage({ customerName: customer.name, amount, dueDate, storeName, overdue });
+    try {
+      if (kind === 'sms') await openSms(customer.phone, text);
+      else await openWhatsApp(customer.phone, text);
+    } catch {
+      showToast('No se pudo abrir la app de mensajes', 'error');
+    }
+  };
 
   const totalDebt = installments.filter(i => i.status === 'active').reduce((s, i) => s + i.remainingAmount, 0);
   const totalPaid = installments.reduce((s, i) => s + i.paidAmount, 0);
@@ -350,9 +414,6 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
   return (
     <div className="animate-fade-in-up">
       <div className="flex items-center gap-2 mb-4 px-4 pt-4">
-        <button onClick={onBack} className="p-2 rounded-lg active:bg-[#F1F5F9]">
-          <X size={20} className="text-[#475569]" />
-        </button>
         <h2 className="text-lg font-semibold truncate flex-1">{customer.name}</h2>
         <button onClick={onEdit} className="p-2 text-[#0F766E]">
           <span className="text-xs font-medium">Editar</span>
@@ -465,6 +526,25 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
                     </div>
                   )}
 
+                  {nextNum <= inst.numberOfPayments && (
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => sendReminder('sms', installmentAmount, nextDate, isOverdue)}
+                        className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-lg border border-[#0F766E] text-[#0F766E] text-xs font-medium active:scale-[0.98] transition-transform"
+                      >
+                        <MessageSquare size={14} />
+                        Recordar SMS
+                      </button>
+                      <button
+                        onClick={() => sendReminder('whatsapp', installmentAmount, nextDate, isOverdue)}
+                        className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-lg bg-[#25D366] text-white text-xs font-medium active:scale-[0.98] transition-transform"
+                      >
+                        <MessageCircle size={14} />
+                        WhatsApp
+                      </button>
+                    </div>
+                  )}
+
                   {nextNum > inst.numberOfPayments && (
                     <p className="text-xs text-[#059669] font-medium text-center py-1">Todas las cuotas pagadas</p>
                   )}
@@ -527,6 +607,8 @@ function PaymentForm({ installment, onClose, onPay }: {
   const [method, setMethod] = useState<PaymentMethod>('cash');
   const maxAmount = installment.totalAmount / installment.numberOfPayments;
 
+  useBackHandler(onClose);
+
   useEffect(() => {
     if (amount === 0) setAmount(maxAmount);
   }, []);
@@ -542,12 +624,7 @@ function PaymentForm({ installment, onClose, onPay }: {
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium text-[#475569] block mb-1">Monto (CUP)</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(Math.min(maxAmount, Math.max(0, Number(e.target.value))))}
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] outline-none"
-            />
+            <NumberField value={amount} onChange={setAmount} decimals min={0} max={maxAmount} />
             <p className="text-xs text-[#94A3B8] mt-1">Máximo: {formatPrice(maxAmount, 'CUP')}</p>
           </div>
           <div>

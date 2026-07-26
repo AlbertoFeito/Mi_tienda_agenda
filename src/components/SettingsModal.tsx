@@ -1,12 +1,24 @@
-import { useState } from 'react';
-import { X, Download, Upload, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, Upload, Trash2, KeyRound, Fingerprint } from 'lucide-react';
+import ChangePinModal from '@/components/ChangePinModal';
 import { useApp } from '@/contexts/AppContext';
-import { exportData, importData, clearAllData } from '@/lib/db';
+import { importData, clearAllData } from '@/lib/db';
+import { shareBackup } from '@/lib/backup';
+import { biometricAvailable, biometricAuthenticate } from '@/lib/biometric';
+import { useBackHandler } from '@/lib/backHandler';
+import NumberField from '@/components/NumberField';
+import PhoneField, { isValidCubanPhone, normalizeCubanPhone } from '@/components/PhoneField';
 import type { Currency } from '@/types';
 
-export default function SettingsModal({ onClose }: { onClose: () => void }) {
+export default function SettingsModal({
+  initialTab = 'rates',
+  onClose,
+}: {
+  initialTab?: 'rates' | 'store' | 'data';
+  onClose: () => void;
+}) {
   const { settings, updateRates, updateStoreInfo, showToast } = useApp();
-  const [activeTab, setActiveTab] = useState<'rates' | 'store' | 'data'>('rates');
+  const [activeTab, setActiveTab] = useState<'rates' | 'store' | 'data'>(initialTab);
   const [usdRate, setUsdRate] = useState(settings?.usdRate ?? 320);
   const [eurRate, setEurRate] = useState(settings?.eurRate ?? 350);
   const [mlcRate, setMlcRate] = useState(settings?.mlcRate ?? 300);
@@ -16,6 +28,33 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
   const [primaryCurrency, setPrimaryCurrency] = useState<Currency>(settings?.primaryCurrency ?? 'CUP');
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showChangePin, setShowChangePin] = useState(false);
+  const [biometricSupported, setBiometricSupported] = useState(false);
+
+  useEffect(() => {
+    biometricAvailable().then(setBiometricSupported);
+  }, []);
+
+  const toggleBiometric = async () => {
+    if (settings?.biometricEnabled) {
+      await updateStoreInfo({ biometricEnabled: false });
+      showToast('Desbloqueo por huella desactivado', 'success');
+      return;
+    }
+    const ok = await biometricAuthenticate({
+      reason: 'Confirma tu huella para activarla',
+      storeName: settings?.storeName,
+    });
+    if (!ok) {
+      showToast('No se pudo verificar la huella', 'error');
+      return;
+    }
+    await updateStoreInfo({ biometricEnabled: true });
+    showToast('Desbloqueo por huella activado', 'success');
+  };
+
+  useBackHandler(onClose);
+  useBackHandler(() => { setShowDeleteModal(false); setDeleteConfirm(''); }, showDeleteModal);
 
   const handleSaveRates = async () => {
     await updateRates(usdRate, eurRate, mlcRate);
@@ -23,23 +62,20 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
   };
 
   const handleSaveStore = async () => {
-    await updateStoreInfo({ storeName, address, phone, primaryCurrency });
+    if (!isValidCubanPhone(phone)) {
+      showToast('El teléfono debe tener 8 dígitos (Cuba)', 'error');
+      return;
+    }
+    await updateStoreInfo({ storeName, address, phone: normalizeCubanPhone(phone), primaryCurrency });
     showToast('Datos de la tienda guardados', 'success');
   };
 
   const handleExport = async () => {
     try {
-      const data = await exportData();
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `mitienda-backup-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('Datos exportados correctamente', 'success');
+      await shareBackup();
+      showToast('Copia de seguridad creada', 'success');
     } catch {
-      showToast('Error al exportar datos', 'error');
+      showToast('Error al crear la copia', 'error');
     }
   };
 
@@ -66,9 +102,6 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[300] bg-white flex flex-col animate-slide-up">
       <div className="h-14 bg-[#134E4A] text-white flex items-center justify-between px-4 flex-shrink-0">
         <h2 className="text-lg font-semibold">Configuración</h2>
-        <button onClick={onClose} className="p-2 active:scale-95 transition-transform">
-          <X size={22} />
-        </button>
       </div>
 
       <div className="flex border-b border-[#E2E8F0] flex-shrink-0">
@@ -99,12 +132,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
               ].map((rate) => (
                 <div key={rate.label} className="flex items-center gap-3">
                   <label className="text-sm font-medium text-[#475569] w-20">{rate.label}</label>
-                  <input
-                    type="number"
-                    value={rate.value}
-                    onChange={(e) => rate.setter(Number(e.target.value))}
-                    className="flex-1 h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-                  />
+                  <NumberField value={rate.value} onChange={rate.setter} decimals className="flex-1" />
                   <span className="text-sm text-[#94A3B8]">CUP</span>
                 </div>
               ))}
@@ -141,12 +169,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
               </div>
               <div>
                 <label className="text-sm font-medium text-[#475569] block mb-1">Teléfono</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-                />
+                <PhoneField value={phone} onChange={setPhone} />
               </div>
               <div>
                 <label className="text-sm font-medium text-[#475569] block mb-1">Moneda principal</label>
@@ -174,19 +197,56 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
         {activeTab === 'data' && (
           <div className="space-y-4">
             <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3">
+              <p className="text-sm font-medium text-[#475569]">Seguridad</p>
+              <button
+                onClick={() => setShowChangePin(true)}
+                className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-lg font-medium active:scale-[0.98] transition-transform"
+              >
+                <KeyRound size={18} />
+                Cambiar PIN
+              </button>
+
+              {biometricSupported && (
+                <button
+                  onClick={toggleBiometric}
+                  className="w-full h-12 flex items-center justify-between px-3 border border-[#E2E8F0] rounded-lg font-medium text-[#475569] active:scale-[0.98] transition-transform"
+                >
+                  <span className="flex items-center gap-2">
+                    <Fingerprint size={18} className="text-[#0F766E]" />
+                    Desbloqueo por huella
+                  </span>
+                  <span
+                    className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                      settings?.biometricEnabled ? 'bg-[#D1FAE5] text-[#059669]' : 'bg-[#F1F5F9] text-[#94A3B8]'
+                    }`}
+                  >
+                    {settings?.biometricEnabled ? 'Activado' : 'Desactivado'}
+                  </span>
+                </button>
+              )}
+            </div>
+
+            <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3">
+              <p className="text-sm font-medium text-[#475569]">Copia de seguridad</p>
               <button
                 onClick={handleExport}
                 className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-lg font-medium active:scale-[0.98] transition-transform"
               >
                 <Download size={18} />
-                Exportar Datos
+                Crear y compartir copia
               </button>
 
               <label className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#64748B] text-[#64748B] rounded-lg font-medium active:scale-[0.98] transition-transform cursor-pointer">
                 <Upload size={18} />
-                Importar Datos
+                Restaurar copia
                 <input type="file" accept=".json" onChange={handleImport} className="hidden" />
               </label>
+
+              <p className="text-xs text-[#94A3B8] text-center">
+                {settings?.lastBackupAt
+                  ? `Última copia: ${new Date(settings.lastBackupAt).toLocaleString('es-CU')}`
+                  : 'Aún no has creado una copia. Se crea una automática cada día.'}
+              </p>
 
               <button
                 onClick={() => setShowDeleteModal(true)}
@@ -198,7 +258,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
 
             <div className="text-center pt-4">
-              <p className="text-xs text-[#94A3B8]">MiTienda v1.0.0</p>
+              <p className="text-xs text-[#94A3B8]">NayadeStore v2.6</p>
               <p className="text-xs text-[#94A3B8]">Gestión comercial offline</p>
             </div>
           </div>
@@ -237,6 +297,8 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       )}
+
+      {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
     </div>
   );
 }

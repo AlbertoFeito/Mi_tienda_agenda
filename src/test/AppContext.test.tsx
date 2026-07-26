@@ -14,8 +14,6 @@ vi.mock('@/lib/db', () => ({
         eurRate: 350,
         mlcRate: 300,
       }]),
-    },
-    settings: {
       update: vi.fn().mockResolvedValue(1),
     },
   },
@@ -28,8 +26,7 @@ describe('AppContext', () => {
 
   describe('useApp', () => {
     it('should throw error when used outside AppProvider', () => {
-      const { result } = renderHook(() => useApp());
-      expect(result.error).toBeDefined();
+      expect(() => renderHook(() => useApp())).toThrow('useApp must be used within AppProvider');
     });
 
     it('should provide default currency rates', async () => {

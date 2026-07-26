@@ -56,6 +56,16 @@ export interface Customer {
   createdAt: Date;
 }
 
+export interface Owner {
+  id?: number;
+  name: string;
+  phone?: string;
+  email?: string;
+  avatar?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Installment {
   id?: number;
   saleId: number;
@@ -81,6 +91,15 @@ export interface InstallmentPayment {
   createdAt: Date;
 }
 
+/** A payment the seller makes to a consignment owner (settlement). */
+export interface OwnerPayment {
+  id?: number;
+  ownerName: string;
+  amount: number; // CUP
+  notes?: string;
+  createdAt: Date;
+}
+
 export interface AppSettings {
   id?: number;
   storeName: string;
@@ -90,6 +109,22 @@ export interface AppSettings {
   usdRate: number;
   eurRate: number;
   mlcRate: number;
+  /** Salted SHA-256 hash of the app PIN ("salt$hash"). Undefined until set. */
+  pinHash?: string;
+  /** Whether fingerprint/biometric unlock is enabled. */
+  biometricEnabled?: boolean;
+  /** ISO timestamp of the last successful data backup. */
+  lastBackupAt?: string;
+  /** ISO timestamp of when the first-run walkthrough was completed. */
+  onboardingDoneAt?: string;
+  /** ISO timestamp of the last time the user reviewed the exchange rates. */
+  ratesReviewedAt?: string;
+  /**
+   * ISO timestamp of the last backup the user actually sent out of the phone.
+   * Kept apart from `lastBackupAt`, which the daily automatic backup also sets
+   * and which therefore proves nothing about surviving a lost phone.
+   */
+  lastSharedBackupAt?: string;
   createdAt: Date;
   updatedAt: Date;
 }

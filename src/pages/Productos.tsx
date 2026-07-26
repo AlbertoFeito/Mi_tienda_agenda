@@ -1,7 +1,12 @@
 import { useState, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useLiveQuery } from '@/lib/live';
 import { Search, Plus, X, Package, Camera } from 'lucide-react';
 import { db } from '@/lib/db';
+import { pickProductImage } from '@/lib/camera';
+import { useBackHandler } from '@/lib/backHandler';
+import NumberField from '@/components/NumberField';
+import HelpButton from '@/components/HelpButton';
+import ImageViewer from '@/components/ImageViewer';
 import { useApp } from '@/contexts/AppContext';
 import type { Product, ProductType, Currency } from '@/types';
 
@@ -14,6 +19,7 @@ export default function Productos() {
   const [filter, setFilter] = useState<ProductFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [viewerImage, setViewerImage] = useState<string | null>(null);
 
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
@@ -107,59 +113,78 @@ export default function Productos() {
         ) : (
           <div className="space-y-3">
             {filteredProducts.map((product, i) => (
-              <button
+              <div
                 key={product.id}
-                onClick={() => openForm(product)}
-                className="w-full bg-white rounded-xl p-4 shadow-sm text-left active:bg-[#F1F5F9] transition-colors"
+                className="w-full bg-white rounded-xl p-4 shadow-sm flex items-start gap-3"
                 style={{ animationDelay: `${i * 30}ms` }}
               >
-                <div className="flex items-start gap-3">
-                  {product.image ? (
-                    <img src={product.image} alt={product.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-2xl flex-shrink-0">
-                      📦
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium text-gray-900 truncate">{product.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            product.type === 'own' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-                          }`}>
-                            {product.type === 'own' ? 'Propio' : 'Ajeno'}
-                          </span>
-                          <span className="text-xs text-gray-500">{product.category}</span>
-                        </div>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="font-semibold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
-                        <p className={`text-xs font-medium ${
-                          product.stock <= 0 ? 'text-red-500' : 
-                          product.stock <= product.minStock ? 'text-orange-500' : 'text-gray-500'
-                        }`}>
-                          Stock: {product.stock}
-                        </p>
-                      </div>
-                    </div>
-                    {product.stock <= 0 && (
-                      <p className="text-xs text-red-500 mt-1 font-medium">Sin stock disponible</p>
-                    )}
+                {product.image ? (
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    onClick={() => setViewerImage(product.image!)}
+                    className="w-16 h-16 rounded-xl object-cover flex-shrink-0 cursor-zoom-in active:opacity-80"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-2xl flex-shrink-0">
+                    📦
                   </div>
-                </div>
-              </button>
+                )}
+                <button onClick={() => openForm(product)} className="flex-1 min-w-0 text-left active:opacity-70">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-gray-900 truncate">{product.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          product.type === 'own' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {product.type === 'own' ? 'Propio' : 'Ajeno'}
+                        </span>
+                        <span className="text-xs text-gray-500">{product.category}</span>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-semibold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
+                      <p className={`text-xs font-medium ${
+                        product.stock <= 0 ? 'text-red-500' :
+                        product.stock <= product.minStock ? 'text-orange-500' : 'text-gray-500'
+                      }`}>
+                        Stock: {product.stock}
+                      </p>
+                    </div>
+                  </div>
+                  {product.stock <= 0 && (
+                    <p className="text-xs text-red-500 mt-1 font-medium">Sin stock disponible</p>
+                  )}
+                </button>
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      {viewerImage && <ImageViewer src={viewerImage} onClose={() => setViewerImage(null)} />}
     </div>
   );
 }
 
 function ProductForm({ product, onBack }: { product: Product | null; onBack: () => void }) {
-  const { formatPrice, showToast } = useApp();
+  const { formatPrice, showToast, convertToCUP, currencyRates } = useApp();
+  const dbOwners = useLiveQuery(() => db.owners.toArray(), []) || [];
+  const ownerSuggestions =
+    useLiveQuery(
+      () =>
+        db.products.toArray().then((ps) =>
+          Array.from(
+            new Set(
+              ps
+                .filter((p) => p.type === 'consignment' && p.ownerName?.trim())
+                .map((p) => p.ownerName!.trim()),
+            ),
+          ),
+        ),
+      [],
+    ) || [];
   const [name, setName] = useState(product?.name || '');
   const [category, setCategory] = useState(product?.category || '');
   const [customCategory, setCustomCategory] = useState('');
@@ -172,9 +197,12 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
   const [minStock, setMinStock] = useState(product?.minStock || 5);
   const [description, setDescription] = useState(product?.description || '');
   const [image, setImage] = useState<string | undefined>(product?.image);
+  const [showViewer, setShowViewer] = useState(false);
   const [ownerName, setOwnerName] = useState(product?.ownerName || '');
   const [ownerContact, setOwnerContact] = useState(product?.ownerContact || '');
   const [profitPercent, setProfitPercent] = useState(20);
+
+  useBackHandler(onBack);
 
   const categories = useMemo(() => {
     const all = new Set<string>();
@@ -182,12 +210,13 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
     return Array.from(all);
   }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string);
-    reader.readAsDataURL(file);
+  const handlePickImage = async () => {
+    try {
+      const img = await pickProductImage();
+      if (img) setImage(img);
+    } catch {
+      showToast('No se pudo obtener la imagen', 'error');
+    }
   };
 
   const handleSubmit = async () => {
@@ -250,17 +279,33 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
     }
   };
 
+  // The registered owner behind the selected name, when there is one.
+  const registeredOwner = dbOwners.find((o) => o.name === ownerName) || null;
+
+  // Convert a CUP amount back into a given currency using the rates.
+  const fromCUP = (amountCUP: number, currency: Currency): number => {
+    if (currency === 'USD') return amountCUP / currencyRates.USD;
+    if (currency === 'EUR') return amountCUP / currencyRates.EUR;
+    if (currency === 'MLC') return amountCUP / currencyRates.MLC;
+    return amountCUP;
+  };
+
+  // Live profit in the official currency (CUP) for any product type.
+  const costInCUP = convertToCUP(costPrice, costCurrency);
+  const profitPerUnitCUP = convertToCUP(salePrice, saleCurrency) - costInCUP;
+  const marginPercent = costInCUP > 0 ? Math.round((profitPerUnitCUP / costInCUP) * 100) : 0;
+
+  // Suggested sale price (in the sale currency) for consignment products.
   const suggestedSalePrice = useMemo(() => {
     if (type !== 'consignment' || costPrice <= 0) return 0;
-    return costPrice * (1 + profitPercent / 100);
-  }, [type, costPrice, profitPercent]);
+    const desiredSaleCUP = convertToCUP(costPrice, costCurrency) * (1 + profitPercent / 100);
+    return fromCUP(desiredSaleCUP, saleCurrency);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, costPrice, costCurrency, saleCurrency, profitPercent, currencyRates]);
 
   return (
     <div className="animate-fade-in-up">
       <div className="flex items-center gap-2 mb-4 px-4 pt-4">
-        <button onClick={onBack} className="p-2 rounded-lg active:bg-[#F1F5F9]">
-          <X size={20} className="text-[#475569]" />
-        </button>
         <h2 className="text-lg font-semibold">{product ? 'Editar Producto' : 'Nuevo Producto'}</h2>
       </div>
 
@@ -282,15 +327,28 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
         </div>
 
         {/* Imagen */}
-        <div className="flex justify-center">
-          <label className="w-24 h-24 rounded-xl bg-gray-100 flex items-center justify-center cursor-pointer overflow-hidden border-2 border-dashed border-gray-300 active:border-[#0F766E]">
+        <div className="flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={() => (image ? setShowViewer(true) : handlePickImage())}
+            className="w-24 h-24 rounded-xl bg-gray-100 flex items-center justify-center cursor-pointer overflow-hidden border-2 border-dashed border-gray-300 active:border-[#0F766E]"
+          >
             {image ? (
               <img src={image} alt="Preview" className="w-full h-full object-cover" />
             ) : (
               <Camera className="w-8 h-8 text-gray-400" />
             )}
-            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-          </label>
+          </button>
+          {image && (
+            <div className="flex items-center gap-5">
+              <button type="button" onClick={handlePickImage} className="text-xs font-medium text-[#0F766E] active:opacity-70">
+                Cambiar
+              </button>
+              <button type="button" onClick={() => setImage(undefined)} className="text-xs font-medium text-[#DC2626] active:opacity-70">
+                Quitar
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Nombre */}
@@ -330,72 +388,70 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
         </div>
 
         {/* Precio de Costo */}
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-sm font-medium text-[#475569] block mb-1">Precio de Costo *</label>
-            <input
-              type="number"
-              value={costPrice || ''}
-              onChange={(e) => setCostPrice(Number(e.target.value))}
-              placeholder="0.00"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-[#475569] block mb-1">Mon.</label>
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm font-medium text-[#475569]">Precio de Costo *</label>
             <select
               value={costCurrency}
               onChange={(e) => setCostCurrency(e.target.value as Currency)}
-              className="w-full h-12 px-2 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] outline-none bg-white"
+              className="h-8 px-2 rounded-lg border border-[#E2E8F0] text-sm focus:border-[#0F766E] outline-none bg-white"
             >
               {(['CUP', 'USD', 'EUR', 'MLC'] as Currency[]).map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
+          <NumberField value={costPrice} onChange={setCostPrice} decimals placeholder="0.00" />
         </div>
 
         {/* Precio de Venta */}
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-sm font-medium text-[#475569] block mb-1">Precio de Venta *</label>
-            <input
-              type="number"
-              value={salePrice || ''}
-              onChange={(e) => setSalePrice(Number(e.target.value))}
-              placeholder="0.00"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-[#475569] block mb-1">Mon.</label>
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm font-medium text-[#475569]">Precio de Venta *</label>
             <select
               value={saleCurrency}
               onChange={(e) => setSaleCurrency(e.target.value as Currency)}
-              className="w-full h-12 px-2 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] outline-none bg-white"
+              className="h-8 px-2 rounded-lg border border-[#E2E8F0] text-sm focus:border-[#0F766E] outline-none bg-white"
             >
               {(['CUP', 'USD', 'EUR', 'MLC'] as Currency[]).map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
+          <NumberField value={salePrice} onChange={setSalePrice} decimals placeholder="0.00" />
         </div>
 
-        {/* Calculadora de ganancia para productos ajenos */}
+        {/* Ganancia por unidad (todo tipo de producto) */}
+        {costPrice > 0 && salePrice > 0 && (
+          <div className="flex items-center justify-between bg-[#F0FDFA] rounded-xl px-3 py-2.5">
+            <span className="text-sm text-[#475569]">Ganancia por unidad</span>
+            <span className={`text-sm font-bold ${profitPerUnitCUP >= 0 ? 'text-[#059669]' : 'text-red-500'}`}>
+              {formatPrice(profitPerUnitCUP, 'CUP')}
+              {costInCUP > 0 && <span className="text-xs font-normal text-[#94A3B8]"> ({marginPercent}%)</span>}
+            </span>
+          </div>
+        )}
+
+        {/* Calculadora de precio sugerido para productos ajenos */}
         {type === 'consignment' && costPrice > 0 && (
           <div className="bg-[#F0FDFA] rounded-xl p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-[#475569]">% Ganancia</span>
-              <input
-                type="number"
-                value={profitPercent}
-                onChange={(e) => setProfitPercent(Number(e.target.value))}
-                className="w-20 h-10 px-2 rounded-lg border border-[#E2E8F0] text-sm"
-              />
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-[#475569]">% Ganancia deseada</span>
+              <NumberField value={profitPercent} onChange={setProfitPercent} min={0} max={500} step={5} className="w-40" />
             </div>
-            <p className="text-sm font-medium text-[#0F766E]">
-              Precio sugerido: {formatPrice(suggestedSalePrice, costCurrency)}
-            </p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[#475569]">Precio de venta sugerido</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-[#0F766E]">{formatPrice(suggestedSalePrice, saleCurrency)}</span>
+                <button
+                  type="button"
+                  onClick={() => setSalePrice(Number(suggestedSalePrice.toFixed(2)))}
+                  className="text-xs font-medium text-white bg-[#0F766E] px-2.5 py-1 rounded-lg active:scale-95"
+                >
+                  Aplicar
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -403,23 +459,11 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-sm font-medium text-[#475569] block mb-1">Stock *</label>
-            <input
-              type="number"
-              value={stock}
-              onChange={(e) => setStock(Number(e.target.value))}
-              placeholder="0"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-            />
+            <NumberField value={stock} onChange={setStock} placeholder="0" />
           </div>
           <div>
             <label className="text-sm font-medium text-[#475569] block mb-1">Stock Mínimo</label>
-            <input
-              type="number"
-              value={minStock}
-              onChange={(e) => setMinStock(Number(e.target.value))}
-              placeholder="5"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-            />
+            <NumberField value={minStock} onChange={setMinStock} placeholder="5" />
           </div>
         </div>
 
@@ -438,21 +482,42 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
         {/* Datos del dueño (solo para productos ajenos) */}
         {type === 'consignment' && (
           <div className="space-y-3 pt-2 border-t border-gray-100">
-            <p className="text-sm font-medium text-[#475569]">Datos del dueño</p>
-            <input
-              type="text"
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-[#475569]">Datos del dueño</p>
+              <HelpButton topicId="ajenos" label="Cómo funciona" />
+            </div>
+            <select
               value={ownerName}
-              onChange={(e) => setOwnerName(e.target.value)}
-              placeholder="Nombre del dueño"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-            />
-            <input
-              type="text"
-              value={ownerContact}
-              onChange={(e) => setOwnerContact(e.target.value)}
-              placeholder="Contacto del dueño"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-            />
+              onChange={(e) => {
+                setOwnerName(e.target.value);
+                const selected = dbOwners.find((o) => o.name === e.target.value);
+                setOwnerContact(selected?.phone || '');
+              }}
+              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none bg-white"
+            >
+              <option value="">Seleccionar dueño...</option>
+              {[...new Set([...dbOwners.map((o) => o.name), ...ownerSuggestions])].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+            {registeredOwner ? (
+              <p className="text-xs text-[#475569] px-3 py-2 bg-[#F0FDFA] rounded-lg">
+                Contacto: {registeredOwner.phone ? `+53 ${registeredOwner.phone}` : 'sin teléfono guardado'}
+              </p>
+            ) : (
+              <input
+                type="text"
+                value={ownerContact}
+                onChange={(e) => setOwnerContact(e.target.value)}
+                placeholder="Contacto del dueño"
+                className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
+              />
+            )}
+            <p className="text-xs text-[#94A3B8]">
+              Los dueños se crean y editan en la pestaña “Dueños”.
+            </p>
           </div>
         )}
 
@@ -475,6 +540,8 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
           )}
         </div>
       </div>
+
+      {showViewer && image && <ImageViewer src={image} onClose={() => setShowViewer(false)} />}
     </div>
   );
 }
