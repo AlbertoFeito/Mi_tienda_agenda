@@ -190,6 +190,25 @@ export const HELP_TOPICS: HelpTopic[] = [
     keywords: ['copia', 'seguridad', 'respaldo', 'backup', 'restaurar', 'perder', 'datos'],
   },
   {
+    id: 'licencia',
+    title: 'Licencia de la aplicación',
+    summary:
+      'La aplicación funciona a prueba unos días. Para seguir usándola después hace falta una licencia, que se activa una sola vez y no necesita internet.',
+    steps: [
+      'Entra en Configuración → pestaña “Datos”.',
+      'Ahí aparece el “Código de este teléfono”.',
+      'Envíale ese código a quien te vendió la aplicación.',
+      'Te devolverá una licencia; escríbela y toca “Activar licencia”.',
+    ],
+    notes: [
+      'La licencia sirve solo para este teléfono: en otro aparato no funciona.',
+      'Una vez activada no vence ni hay que renovarla.',
+      'Aunque se acabe la prueba, tus datos siguen siendo tuyos y puedes guardar una copia de seguridad desde la propia pantalla de activación.',
+      'Si cambias de teléfono, restaura tu copia de seguridad: la licencia va dentro.',
+    ],
+    keywords: ['licencia', 'activar', 'prueba', 'código', 'equipo', 'vencida', 'pagar', 'comprar'],
+  },
+  {
     id: 'seguridad',
     title: 'PIN y huella',
     summary: 'La app se abre con un PIN de 4 dígitos, y puedes activar la huella para entrar más rápido.',

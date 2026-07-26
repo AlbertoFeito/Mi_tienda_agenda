@@ -117,6 +117,12 @@ export interface AppSettings {
   lastBackupAt?: string;
   /** ISO timestamp of when the first-run walkthrough was completed. */
   onboardingDoneAt?: string;
+  /** Code identifying this install, shown to the user so it can be licensed. */
+  deviceId?: string;
+  /** The activation code, once verified. Its presence means "licensed". */
+  licenseKey?: string;
+  /** ISO timestamp of the first launch, from which the trial is counted. */
+  trialStartedAt?: string;
   /** ISO timestamp of the last time the user reviewed the exchange rates. */
   ratesReviewedAt?: string;
   /**

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download, Upload, Trash2, KeyRound, Fingerprint } from 'lucide-react';
+import { Download, Upload, Trash2, KeyRound, Fingerprint, ShieldCheck } from 'lucide-react';
 import ChangePinModal from '@/components/ChangePinModal';
 import { useApp } from '@/contexts/AppContext';
 import { importData, clearAllData } from '@/lib/db';
@@ -8,6 +8,12 @@ import { biometricAvailable, biometricAuthenticate } from '@/lib/biometric';
 import { useBackHandler } from '@/lib/backHandler';
 import NumberField from '@/components/NumberField';
 import PhoneField, { isValidCubanPhone, normalizeCubanPhone } from '@/components/PhoneField';
+import {
+  formatDeviceId,
+  licenceSecret,
+  licenceStatus,
+  verifyLicence,
+} from '@/lib/license';
 import type { Currency } from '@/types';
 
 export default function SettingsModal({
@@ -226,6 +232,8 @@ export default function SettingsModal({
               )}
             </div>
 
+            <LicenseSection />
+
             <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3">
               <p className="text-sm font-medium text-[#475569]">Copia de seguridad</p>
               <button
@@ -258,7 +266,7 @@ export default function SettingsModal({
             </div>
 
             <div className="text-center pt-4">
-              <p className="text-xs text-[#94A3B8]">NayadeStore v2.6</p>
+              <p className="text-xs text-[#94A3B8]">NayadeStore v2.7</p>
               <p className="text-xs text-[#94A3B8]">Gestión comercial offline</p>
             </div>
           </div>
@@ -299,6 +307,88 @@ export default function SettingsModal({
       )}
 
       {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
+    </div>
+  );
+}
+
+/** Licence status, the device code to send, and the activation field. */
+function LicenseSection() {
+  const { settings, updateStoreInfo, showToast } = useApp();
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  if (!settings?.deviceId) return null;
+
+  const status = licenceStatus({
+    licensed: Boolean(settings.licenseKey),
+    trialStartedAt: settings.trialStartedAt,
+  });
+
+  const activate = async () => {
+    setBusy(true);
+    try {
+      const ok = await verifyLicence(settings.deviceId!, code, licenceSecret());
+      if (!ok) {
+        showToast('Esa licencia no es válida para este teléfono', 'error');
+        return;
+      }
+      await updateStoreInfo({ licenseKey: code.trim() });
+      setCode('');
+      showToast('¡Licencia activada!', 'success');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-[#475569]">Licencia</p>
+        <span
+          className={`text-xs font-semibold px-2 py-1 rounded-full ${
+            status.state === 'activa'
+              ? 'bg-[#D1FAE5] text-[#059669]'
+              : status.state === 'prueba'
+                ? 'bg-[#FEF3C7] text-[#D97706]'
+                : 'bg-[#FEE2E2] text-[#DC2626]'
+          }`}
+        >
+          {status.state === 'activa'
+            ? 'Activada'
+            : status.state === 'prueba'
+              ? `Prueba: ${status.daysLeft} día${status.daysLeft === 1 ? '' : 's'}`
+              : 'Vencida'}
+        </span>
+      </div>
+
+      <div>
+        <p className="text-xs text-[#94A3B8]">Código de este teléfono</p>
+        <p className="text-base font-bold tracking-wider font-mono text-[#0F172A]">
+          {formatDeviceId(settings.deviceId)}
+        </p>
+      </div>
+
+      {status.state !== 'activa' && (
+        <>
+          <input
+            type="text"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="XXXX-XXXX-XXXX-XXXX"
+            autoCapitalize="characters"
+            spellCheck={false}
+            className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base tracking-wider font-mono focus:border-[#0F766E] outline-none"
+          />
+          <button
+            onClick={activate}
+            disabled={busy || code.trim().length === 0}
+            className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-lg font-medium active:scale-[0.98] transition-transform disabled:opacity-40"
+          >
+            <ShieldCheck size={18} />
+            Activar licencia
+          </button>
+        </>
+      )}
     </div>
   );
 }

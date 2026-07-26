@@ -58,6 +58,47 @@ Atajo equivalente: `npm run android:apk`.
 Para una versión de release firmada, configura un keystore y usa
 `gradle assembleRelease`.
 
+### La firma está fijada a propósito
+
+`android/app/debug.keystore` se versiona y el build de depuración lo usa. Sin
+eso, cada máquina firmaría con una clave distinta y Android se negaría a
+instalar la actualización encima de la app ya instalada; la única salida sería
+desinstalar, lo que borra la base de datos con toda la contabilidad.
+
+## Licencias por teléfono
+
+La app funciona 15 días de prueba. Después pide una licencia, que se comprueba
+en el propio teléfono sin internet.
+
+**Antes de vender nada**, define tu secreto y compila con él:
+
+```bash
+cp .env.example .env
+# edita .env y pon un secreto largo y aleatorio (openssl rand -base64 32)
+npm run cap:sync && cd android && ./gradlew assembleDebug
+```
+
+El `.env` está en `.gitignore`. Guarda ese secreto donde no se pierda: si lo
+cambias, **todas las licencias que hayas vendido dejan de funcionar**.
+
+Para atender a un cliente:
+
+```bash
+# El cliente te pasa el código que ve en Configuración → Datos
+LICENSE_SECRET="tu-secreto" node scripts/generar-licencia.mjs 7K3M9-2QXBD
+
+# Equipo:   7K3M9-2QXBD
+# Licencia: 4B7Q-M2XD-9KHT-P3NW      <- esto es lo que le envías
+```
+
+Esa licencia solo abre ese teléfono. Va guardada en los ajustes, así que
+restaurar una copia de seguridad en un móvil nuevo se la lleva consigo.
+
+**Qué protege y qué no.** Impide que alguien reparta el APK con su licencia y
+funcione en otros teléfonos, que es el caso real. No resiste a quien desempaque
+el APK y edite el JavaScript de dentro: ninguna comprobación local lo hace. Es
+fricción contra la copia casual, no una caja fuerte.
+
 ## Instalar en el teléfono
 
 1. Copia `app-debug.apk` al teléfono (cable USB, o compártelo por Bluetooth /

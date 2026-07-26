@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Secreto de licencias: si esto se sube, cualquiera puede generar licencias.
+.env
+.env.*
+!.env.example
+
 # Android build outputs / local SDK config
 *.apk
 *.aab

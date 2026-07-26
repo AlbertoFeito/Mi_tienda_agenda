@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import { AppProvider, useApp } from '@/contexts/AppContext';
 import { maybeAutoBackup } from '@/lib/backup';
 import AuthGate from '@/components/AuthGate';
+import LicenseGate from '@/components/LicenseGate';
 import BackButtonManager from '@/components/BackButtonManager';
 import Header from '@/components/Header';
 import Onboarding from '@/components/Onboarding';
@@ -62,7 +63,9 @@ export default function App() {
   return (
     <AppProvider>
       <AuthGate>
-        <AppLayout />
+        <LicenseGate>
+          <AppLayout />
+        </LicenseGate>
       </AuthGate>
     </AppProvider>
   );
