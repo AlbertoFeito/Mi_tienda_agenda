@@ -3,6 +3,7 @@ import { MessageSquare, MessageCircle, BellRing, AlertTriangle } from 'lucide-re
 import { useLiveQuery } from '@/lib/live';
 import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
+import { moneyClass } from '@/lib/format';
 import { getDueSoon } from '@/lib/installments';
 import { syncReminders } from '@/lib/reminders';
 import { buildReminderMessage, openSms, openWhatsApp } from '@/lib/messaging';
@@ -73,7 +74,7 @@ export default function UpcomingCollections() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-medium text-[#0F172A] truncate">{installment.customerName}</p>
-                  <p className="text-lg font-semibold text-[#0F766E]">{formatPrice(amount, 'CUP')}</p>
+                  <p className={`font-semibold text-[#0F766E] ${moneyClass(formatPrice(amount, 'CUP'), 'lg')}`}>{formatPrice(amount, 'CUP')}</p>
                 </div>
                 <span
                   className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${

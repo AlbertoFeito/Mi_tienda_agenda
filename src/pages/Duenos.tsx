@@ -9,6 +9,8 @@ import { normalizeCubanPhone, isValidCubanPhone } from '@/components/PhoneField'
 import PhoneField from '@/components/PhoneField';
 import NumberField from '@/components/NumberField';
 import HelpButton from '@/components/HelpButton';
+import { moneyClass } from '@/lib/format';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { computeOwners, type OwnerSummary } from '@/lib/owners';
 import type { Owner, OwnerPayment } from '@/types';
 import { pickPhoneContact, savePhoneContact, contactsSupported } from '@/lib/contacts';
@@ -137,9 +139,9 @@ export default function Duenos() {
                     {o.activeProducts} en venta · {o.products.length} en total
                   </p>
                 </div>
-                <div className="text-right flex-shrink-0">
+                <div className="text-right flex-shrink-0 max-w-[55%]">
                   <p className="text-[10px] text-[#94A3B8]">Le debes</p>
-                  <p className={`font-bold ${o.balance > 0.005 ? 'text-[#DC2626]' : 'text-[#059669]'}`}>
+                  <p className={`font-bold ${o.balance > 0.005 ? 'text-[#DC2626]' : 'text-[#059669]'} ${moneyClass(formatPrice(o.balance, 'CUP'))}`}>
                     {formatPrice(o.balance, 'CUP')}
                   </p>
                 </div>
@@ -181,9 +183,11 @@ function OwnerManagement({
     o.email?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  const [porEliminar, setPorEliminar] = useState<Owner | null>(null);
+
   const handleDelete = async (owner: Owner) => {
+    setPorEliminar(null);
     if (!owner.id) return;
-    if (!confirm(`¿Eliminar a ${owner.name}?`)) return;
     try {
       await db.owners.delete(owner.id);
       showToast('Dueño eliminado', 'success');
@@ -246,7 +250,7 @@ function OwnerManagement({
                     Editar
                   </button>
                   <button
-                    onClick={() => handleDelete(owner)}
+                    onClick={() => setPorEliminar(owner)}
                     className="flex-1 h-9 text-sm font-medium text-[#DC2626] border border-[#DC2626] rounded-lg active:scale-95 transition-transform"
                   >
                     Eliminar
@@ -257,6 +261,15 @@ function OwnerManagement({
           </div>
         )}
       </div>
+
+      {porEliminar && (
+        <ConfirmDialog
+          title={`¿Eliminar a ${porEliminar.name}?`}
+          message="Se borra de tu lista de dueños. Sus productos y la liquidación no se tocan."
+          onConfirm={() => handleDelete(porEliminar)}
+          onCancel={() => setPorEliminar(null)}
+        />
+      )}
     </div>
   );
 }
@@ -489,7 +502,7 @@ function OwnerDetail({
               <span className="text-sm text-[#475569] block">Saldo a pagar</span>
               <span className="text-[11px] text-[#94A3B8]">lo vendido menos lo que ya le diste</span>
             </div>
-            <span className={`text-2xl font-bold ${owner.balance > 0.005 ? 'text-[#DC2626]' : 'text-[#059669]'}`}>
+            <span className={`font-bold text-right ${owner.balance > 0.005 ? 'text-[#DC2626]' : 'text-[#059669]'} ${moneyClass(formatPrice(owner.balance, 'CUP'), 'xl')}`}>
               {formatPrice(owner.balance, 'CUP')}
             </span>
           </div>

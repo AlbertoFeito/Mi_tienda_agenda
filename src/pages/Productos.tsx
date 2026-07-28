@@ -6,6 +6,8 @@ import { pickProductImage } from '@/lib/camera';
 import { useBackHandler } from '@/lib/backHandler';
 import NumberField from '@/components/NumberField';
 import HelpButton from '@/components/HelpButton';
+import { moneyClass } from '@/lib/format';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import ImageViewer from '@/components/ImageViewer';
 import { useApp } from '@/contexts/AppContext';
 import type { Product, ProductType, Currency } from '@/types';
@@ -132,24 +134,28 @@ export default function Productos() {
                 )}
                 <button onClick={() => openForm(product)} className="flex-1 min-w-0 text-left active:opacity-70">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
+                    {/* min-w-0 deja que el nombre se recorte; sin él, esta
+                        columna no cede y empuja el precio fuera de la tarjeta. */}
+                    <div className="min-w-0 flex-1">
                       <p className="font-medium text-gray-900 truncate">{product.name}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
                           product.type === 'own' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
                         }`}>
                           {product.type === 'own' ? 'Propio' : 'Ajeno'}
                         </span>
-                        <span className="text-xs text-gray-500">{product.category}</span>
+                        <span className="text-xs text-gray-500 truncate">{product.category}</span>
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-semibold text-[#0F766E]">{formatPrice(product.salePrice, product.saleCurrency)}</p>
-                      <p className={`text-xs font-medium ${
+                    <div className="text-right flex-shrink-0 max-w-[55%]">
+                      <p className={`font-semibold text-[#0F766E] ${moneyClass(formatPrice(product.salePrice, product.saleCurrency))}`}>
+                        {formatPrice(product.salePrice, product.saleCurrency)}
+                      </p>
+                      <p className={`text-xs font-medium tabular-nums ${
                         product.stock <= 0 ? 'text-red-500' :
                         product.stock <= product.minStock ? 'text-orange-500' : 'text-gray-500'
                       }`}>
-                        Stock: {product.stock}
+                        Stock: {product.stock.toLocaleString('es-CU')}
                       </p>
                     </div>
                   </div>
@@ -201,6 +207,7 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
   const [ownerName, setOwnerName] = useState(product?.ownerName || '');
   const [ownerContact, setOwnerContact] = useState(product?.ownerContact || '');
   const [profitPercent, setProfitPercent] = useState(20);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useBackHandler(onBack);
 
@@ -269,7 +276,7 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
 
   const handleDelete = async () => {
     if (!product?.id) return;
-    if (!confirm('¿Eliminar este producto?')) return;
+    setConfirmDelete(false);
     try {
       await db.products.delete(product.id);
       showToast('Producto eliminado', 'success');
@@ -532,7 +539,7 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
           
           {product && (
             <button
-              onClick={handleDelete}
+              onClick={() => setConfirmDelete(true)}
               className="w-full h-14 bg-red-50 text-red-600 rounded-xl font-semibold text-base active:scale-[0.98] transition-transform"
             >
               Eliminar Producto
@@ -542,6 +549,15 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
       </div>
 
       {showViewer && image && <ImageViewer src={image} onClose={() => setShowViewer(false)} />}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title="¿Eliminar este producto?"
+          message={`"${name || 'Sin nombre'}" desaparecerá de la lista. Las ventas ya hechas no cambian.`}
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   );
 }

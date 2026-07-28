@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
 import UpcomingCollections from '@/components/UpcomingCollections';
 import FirstSteps from '@/components/FirstSteps';
+import { moneyClass } from '@/lib/format';
 import { isToday, isPast, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
 export default function Dashboard() {
@@ -129,7 +130,8 @@ export default function Dashboard() {
               <stat.icon size={18} className={stat.color} />
             </div>
             <p className="text-xs text-[#475569]">{stat.label}</p>
-            <p className="text-lg font-bold text-[#0F172A] truncate">{stat.value}</p>
+            {/* Nunca truncado: media cifra de dinero engaña más que informa. */}
+            <p className={`font-bold text-[#0F172A] break-words ${moneyClass(stat.value, 'lg')}`}>{stat.value}</p>
             {stat.sub && <p className="text-[11px] text-[#94A3B8]">{stat.sub}</p>}
           </div>
         ))}
