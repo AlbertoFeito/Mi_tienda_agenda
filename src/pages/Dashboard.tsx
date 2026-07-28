@@ -160,7 +160,12 @@ export default function Dashboard() {
       <div className="animate-fade-in-up stagger-4" style={{ opacity: 0 }}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-[#0F172A]">Ventas Recientes</h3>
-          <button onClick={() => navigate('/analisis')} className="text-xs text-[#0F766E] font-medium">Ver todas</button>
+          <button
+            onClick={() => navigate('/analisis', { state: { tab: 'ventas' } })}
+            className="text-xs text-[#0F766E] font-medium"
+          >
+            Ver todas
+          </button>
         </div>
         {stats.recentSales.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center shadow-sm">

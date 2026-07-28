@@ -157,6 +157,23 @@ export const HELP_TOPICS: HelpTopic[] = [
     keywords: ['análisis', 'ganancia', 'reporte', 'estadística', 'período', 'más vendido'],
   },
   {
+    id: 'historial',
+    title: 'Ver las ventas que hiciste',
+    summary: 'El listado completo de ventas está en Análisis, en la pestaña “Ventas”.',
+    steps: [
+      'Entra en Análisis y toca la pestaña “Ventas”.',
+      'Elige el período: hoy, la semana, el mes, el año o todas.',
+      'Toca una venta para ver qué llevaba y por cuánto.',
+    ],
+    notes: [
+      'Las ventas salen agrupadas por día, con el total de cada día a la derecha.',
+      'El buscador encuentra por nombre de producto, por cliente o por número de recibo.',
+      'Desde el detalle de una venta puedes volver a mandar el recibo por WhatsApp o SMS.',
+      'Desde Inicio, el botón “Ver todas” de las ventas recientes te lleva directo ahí.',
+    ],
+    keywords: ['ventas', 'historial', 'listado', 'recibo', 'buscar', 'vendido', 'ayer', 'semana'],
+  },
+  {
     id: 'monedas',
     title: 'Monedas y tasas de cambio',
     summary:

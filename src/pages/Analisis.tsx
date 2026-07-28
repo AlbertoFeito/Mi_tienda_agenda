@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useLiveQuery } from '@/lib/live';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { TrendingUp, DollarSign, Package, CreditCard } from 'lucide-react';
 import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
+import SalesHistory from '@/components/SalesHistory';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, subDays } from 'date-fns';
 import type { PeriodFilter } from '@/types';
 
@@ -27,6 +29,11 @@ const PIE_COLORS = {
 
 export default function Analisis() {
   const { formatPrice, convertToCUP } = useApp();
+  const location = useLocation();
+  // "Ver todas" del inicio entra directamente en el listado de ventas.
+  const [tab, setTab] = useState<'resumen' | 'ventas'>(
+    (location.state as { tab?: string } | null)?.tab === 'ventas' ? 'ventas' : 'resumen',
+  );
   const [period, setPeriod] = useState<PeriodFilter>('week');
 
   const sales = useLiveQuery(() => db.sales.toArray(), []);
@@ -190,6 +197,27 @@ export default function Analisis() {
     <div className="space-y-5 animate-fade-in-up">
       <h2 className="text-xl font-bold">Análisis</h2>
 
+      <div className="flex bg-[#F1F5F9] rounded-lg p-1">
+        {([
+          { key: 'resumen', label: 'Resumen' },
+          { key: 'ventas', label: 'Ventas' },
+        ] as const).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+              tab === t.key ? 'bg-white text-[#0F766E] shadow-sm' : 'text-[#475569]'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'ventas' && <SalesHistory />}
+
+      {tab === 'resumen' && (
+      <>
       {/* Period Selector */}
       <div className="flex bg-[#F1F5F9] rounded-lg p-1">
         {PERIOD_OPTIONS.map(opt => (
@@ -384,6 +412,8 @@ export default function Analisis() {
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }

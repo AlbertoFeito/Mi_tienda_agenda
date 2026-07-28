@@ -266,7 +266,7 @@ export default function SettingsModal({
             </div>
 
             <div className="text-center pt-4">
-              <p className="text-xs text-[#94A3B8]">NayadeStore v2.8</p>
+              <p className="text-xs text-[#94A3B8]">NayadeStore v2.9</p>
               <p className="text-xs text-[#94A3B8]">Gestión comercial offline</p>
             </div>
           </div>
