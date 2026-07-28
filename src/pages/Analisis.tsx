@@ -6,6 +6,7 @@ import { TrendingUp, DollarSign, Package, CreditCard } from 'lucide-react';
 import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
 import SalesHistory from '@/components/SalesHistory';
+import { activeSales } from '@/lib/sales';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, subDays } from 'date-fns';
 import type { PeriodFilter } from '@/types';
 
@@ -67,7 +68,7 @@ export default function Analisis() {
         break;
     }
 
-    const filteredSales = sales.filter(s => {
+    const filteredSales = activeSales(sales).filter(s => {
       const d = new Date(s.createdAt);
       return d >= start && d <= end;
     });

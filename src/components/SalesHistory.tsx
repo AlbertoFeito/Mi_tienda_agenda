@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Search, X, ShoppingCart, ChevronRight, Receipt } from 'lucide-react';
+import { Search, X, ShoppingCart, ChevronRight, Receipt, Ban } from 'lucide-react';
 import { useLiveQuery } from '@/lib/live';
 import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
 import { useBackHandler } from '@/lib/backHandler';
 import { moneyClass } from '@/lib/format';
+import { canCancel, cancelSale, isActive } from '@/lib/sales';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import ReceiptModal from '@/components/ReceiptModal';
 import type { ReceiptData } from '@/lib/receipt';
 import type { Sale, Customer, PeriodFilter } from '@/types';
@@ -84,13 +86,16 @@ export default function SalesHistory() {
       const key = new Date(s.createdAt).toDateString();
       const entry = map.get(key) || { label: dayKey(new Date(s.createdAt)), sales: [], total: 0 };
       entry.sales.push(s);
-      entry.total += s.total;
+      // Las anuladas se listan pero no suman.
+      if (isActive(s)) entry.total += s.total;
       map.set(key, entry);
     }
     return Array.from(map.values());
   }, [filtered]);
 
-  const periodTotal = filtered.reduce((sum, s) => sum + s.total, 0);
+  const periodTotal = filtered.reduce((sum, s) => (isActive(s) ? sum + s.total : sum), 0);
+  const activas = filtered.filter(isActive).length;
+  const anuladas = filtered.length - activas;
 
   if (selected) {
     return (
@@ -136,7 +141,8 @@ export default function SalesHistory() {
 
       <div className="bg-white rounded-xl p-3 shadow-sm flex items-center justify-between">
         <span className="text-sm text-[#475569]">
-          {filtered.length} {filtered.length === 1 ? 'venta' : 'ventas'}
+          {activas} {activas === 1 ? 'venta' : 'ventas'}
+          {anuladas > 0 && <span className="text-[#94A3B8]"> · {anuladas} anulada{anuladas === 1 ? '' : 's'}</span>}
         </span>
         <span className={`font-bold text-[#0F766E] ${moneyClass(formatPrice(periodTotal, 'CUP'), 'lg')}`}>
           {formatPrice(periodTotal, 'CUP')}
@@ -164,13 +170,14 @@ export default function SalesHistory() {
               {day.sales.map((sale) => {
                 const m = METHOD[sale.paymentMethod] ?? METHOD.cash;
                 const units = sale.items.reduce((n, it) => n + it.quantity, 0);
+                const anulada = !isActive(sale);
                 return (
                   <button
                     key={sale.id}
                     onClick={() => setSelected(sale)}
                     className="w-full flex items-center gap-3 p-3 text-left active:bg-[#F1F5F9] transition-colors"
                   >
-                    <span className="w-10 h-10 rounded-full bg-[#F1F5F9] flex items-center justify-center text-lg flex-shrink-0">
+                    <span className={`w-10 h-10 rounded-full bg-[#F1F5F9] flex items-center justify-center text-lg flex-shrink-0 ${anulada ? 'grayscale opacity-60' : ''}`}>
                       {m.icon}
                     </span>
                     <span className="flex-1 min-w-0">
@@ -182,12 +189,13 @@ export default function SalesHistory() {
                         {sale.customerName ? ` · ${sale.customerName}` : ''}
                       </span>
                       <span className="block text-xs text-[#94A3B8] truncate">
+                        {anulada && <span className="text-[#DC2626] font-semibold">Anulada · </span>}
                         {m.label} · {units} {units === 1 ? 'artículo' : 'artículos'}
                         {sale.receiptNumber ? ` · ${sale.receiptNumber}` : ''}
                       </span>
                     </span>
                     <span className="flex items-center gap-1 flex-shrink-0 max-w-[45%]">
-                      <span className={`font-bold text-[#0F172A] ${moneyClass(formatPrice(sale.total, 'CUP'))}`}>
+                      <span className={`font-bold ${anulada ? 'text-[#94A3B8] line-through' : 'text-[#0F172A]'} ${moneyClass(formatPrice(sale.total, 'CUP'))}`}>
                         {formatPrice(sale.total, 'CUP')}
                       </span>
                       <ChevronRight size={16} className="text-[#CBD5E1]" />
@@ -212,13 +220,43 @@ function SaleDetail({
   customer?: Customer;
   onBack: () => void;
 }) {
-  const { formatPrice, settings } = useApp();
+  const { formatPrice, settings, showToast } = useApp();
+  const installments = useLiveQuery(() => db.installments.toArray(), []) || [];
+  const payments = useLiveQuery(() => db.installmentPayments.toArray(), []) || [];
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
+  const [anulando, setAnulando] = useState(false);
 
   useBackHandler(onBack);
 
   const m = METHOD[sale.paymentMethod] ?? METHOD.cash;
   const subtotal = sale.items.reduce((sum, it) => sum + it.subtotal, 0);
+  const anulada = !isActive(sale);
+  const check = canCancel(sale, installments, payments);
+
+  const anular = async () => {
+    if (!sale.id) return;
+    setAnulando(true);
+    try {
+      const res = await cancelSale(sale.id);
+      if (!res.ok) {
+        showToast('No se pudo anular esta venta', 'error');
+        return;
+      }
+      if (res.missingProducts) {
+        showToast(
+          `Venta anulada. ${res.missingProducts} artículo(s) ya no existen y su stock no volvió.`,
+          'warning',
+        );
+      } else {
+        showToast('Venta anulada y stock devuelto', 'success');
+      }
+      onBack();
+    } finally {
+      setAnulando(false);
+      setConfirmando(false);
+    }
+  };
 
   const openReceipt = () => {
     setReceipt({
@@ -241,10 +279,22 @@ function SaleDetail({
   return (
     <div className="space-y-4 animate-fade-in-up">
       <div>
-        <h3 className="text-lg font-semibold">Venta {sale.receiptNumber}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold">Venta {sale.receiptNumber}</h3>
+          {anulada && (
+            <span className="text-xs font-bold text-[#DC2626] bg-[#FEE2E2] px-2 py-0.5 rounded-full">
+              ANULADA
+            </span>
+          )}
+        </div>
         <p className="text-sm text-[#475569]">
           {new Date(sale.createdAt).toLocaleString('es-CU')}
         </p>
+        {anulada && sale.cancelledAt && (
+          <p className="text-xs text-[#DC2626] mt-0.5">
+            Anulada el {new Date(sale.cancelledAt).toLocaleDateString('es-CU')}
+          </p>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm p-4">
@@ -300,13 +350,46 @@ function SaleDetail({
         </div>
       </div>
 
-      <button
-        onClick={openReceipt}
-        className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-xl font-medium active:scale-[0.98] transition-transform"
-      >
-        <Receipt size={18} />
-        Ver y compartir recibo
-      </button>
+      {/* Mandar el comprobante de una venta deshecha sería peor que no mandarlo. */}
+      {!anulada && (
+        <button
+          onClick={openReceipt}
+          className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-xl font-medium active:scale-[0.98] transition-transform"
+        >
+          <Receipt size={18} />
+          Ver y compartir recibo
+        </button>
+      )}
+
+      {!anulada && check.ok && (
+        <button
+          onClick={() => setConfirmando(true)}
+          disabled={anulando}
+          className="w-full h-12 flex items-center justify-center gap-2 bg-red-50 text-red-600 rounded-xl font-semibold active:scale-[0.98] transition-transform disabled:opacity-50"
+        >
+          <Ban size={18} />
+          Anular venta
+        </button>
+      )}
+
+      {!anulada && !check.ok && check.block === 'tiene-cobros' && (
+        <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-xl p-3">
+          <p className="text-sm text-[#92400E]">
+            Esta venta a plazos ya tiene {formatPrice(check.collected || 0, 'CUP')} cobrados,
+            así que no se puede anular. El cliente tiene el producto y ese dinero entró de verdad.
+          </p>
+        </div>
+      )}
+
+      {confirmando && (
+        <ConfirmDialog
+          title="¿Anular esta venta?"
+          message="Los artículos vuelven al inventario y la venta deja de contar en tus ganancias. Queda registrada como anulada."
+          confirmLabel="Anular"
+          onConfirm={anular}
+          onCancel={() => setConfirmando(false)}
+        />
+      )}
 
       {receipt && <ReceiptModal data={receipt} onClose={() => setReceipt(null)} />}
     </div>

@@ -7,6 +7,7 @@ import { useApp } from '@/contexts/AppContext';
 import UpcomingCollections from '@/components/UpcomingCollections';
 import FirstSteps from '@/components/FirstSteps';
 import { moneyClass } from '@/lib/format';
+import { activeSales } from '@/lib/sales';
 import { isToday, isPast, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
 export default function Dashboard() {
@@ -28,7 +29,7 @@ export default function Dashboard() {
     const monthStart = startOfMonth(new Date());
     const monthEnd = endOfMonth(new Date());
 
-    const todaySalesList = sales.filter(s => {
+    const todaySalesList = activeSales(sales).filter(s => {
       const d = new Date(s.createdAt);
       return d >= todayStart && d <= todayEnd;
     });

@@ -1,3 +1,4 @@
+import { isActive } from '@/lib/sales';
 import type { Product, Sale, Owner, OwnerPayment, Currency } from '@/types';
 
 /**
@@ -43,6 +44,8 @@ export function computeOwners(
   const soldQty = new Map<number, number>();
   const revenueCUP = new Map<number, number>();
   for (const sale of sales) {
+    // A cancelled sale never happened: the owner is not owed for it.
+    if (!isActive(sale)) continue;
     for (const it of sale.items) {
       soldQty.set(it.productId, (soldQty.get(it.productId) || 0) + it.quantity);
       revenueCUP.set(

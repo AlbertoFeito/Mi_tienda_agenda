@@ -47,6 +47,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     notes: [
       'Al terminar puedes mandarle el recibo al cliente por WhatsApp o SMS.',
       'El inventario se descuenta solo: no hace falta que toques el stock a mano.',
+      'Si te equivocas, tiene arreglo: se puede anular desde Análisis → Ventas.',
     ],
     keywords: ['vender', 'venta', 'cobrar', 'carrito', 'recibo', 'descuento', 'efectivo', 'transferencia'],
   },
@@ -103,6 +104,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       'A partir de ahí, cada pago se registra desde la ficha del cliente, en Clientes.',
       'La app te avisa en Inicio de los cobros que se acercan y de los que ya vencieron.',
       'Al cliente le puedes mandar el recordatorio ya escrito por WhatsApp o SMS.',
+      'Una venta a plazos se puede anular mientras no hayas cobrado nada. En cuanto entra el primer pago ya no, porque el cliente tiene el producto y ese dinero es real.',
     ],
     keywords: ['plazos', 'cuotas', 'fiado', 'crédito', 'semanal', 'quincenal', 'mensual', 'deuda'],
   },
@@ -139,6 +141,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       'Ejemplo: el dueño quiere 100 por una blusa y tú la vendes en 150. Si vendes 2, le debes 200 y tú ganaste 100.',
       'El “Saldo a pagar” es lo vendido menos lo que ya le entregaste: ese es el número que cuenta.',
       'En “Artículos entregados”, el “Suyo” de cada artículo es lo que ha generado ese artículo en total, sin descontar tus pagos. Por eso puede ser mayor que el saldo.',
+      'Si en vez de “Saldo a pagar” ves “Le pagaste de más”, es que le entregaste más de lo que le tocaba, normalmente porque anulaste una venta después de liquidarle. Ese dinero tienes que recuperarlo.',
       'Puedes mandarle el resumen de su cuenta por WhatsApp o SMS desde su ficha.',
       'En “Gestionar” creas los dueños, con su teléfono, y los eliges de tus contactos.',
     ],
@@ -170,8 +173,29 @@ export const HELP_TOPICS: HelpTopic[] = [
       'El buscador encuentra por nombre de producto, por cliente o por número de recibo.',
       'Desde el detalle de una venta puedes volver a mandar el recibo por WhatsApp o SMS.',
       'Desde Inicio, el botón “Ver todas” de las ventas recientes te lleva directo ahí.',
+      'Ahí mismo se anula una venta mal registrada.',
+      'Las anuladas siguen en la lista, en gris y con el importe tachado, pero no suman en los totales.',
     ],
     keywords: ['ventas', 'historial', 'listado', 'recibo', 'buscar', 'vendido', 'ayer', 'semana'],
+  },
+  {
+    id: 'anular',
+    title: 'Anular una venta mal registrada',
+    summary:
+      'Si te equivocaste al cobrar, puedes anular la venta: los artículos vuelven al inventario y deja de contar en tus ganancias.',
+    steps: [
+      'Entra en Análisis → pestaña “Ventas”.',
+      'Busca la venta y tócala.',
+      'Abajo, toca “Anular venta” y confirma.',
+    ],
+    notes: [
+      'La venta no se borra: queda marcada como anulada, por si después quieres saber qué pasó.',
+      'Lo que le debías a un dueño por esa venta también se descuenta solo.',
+      'Si ya le habías pagado al dueño, su ficha te dirá “Le pagaste de más”: ese dinero tienes que recuperarlo.',
+      'Una venta a plazos con algún cobro recibido no se puede anular: el cliente tiene el producto y ese dinero entró de verdad.',
+      'Para corregir una venta, anúlala y vuelve a hacerla bien.',
+    ],
+    keywords: ['anular', 'cancelar', 'error', 'equivoqué', 'borrar', 'venta', 'devolver', 'corregir'],
   },
   {
     id: 'monedas',

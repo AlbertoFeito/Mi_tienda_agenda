@@ -140,9 +140,11 @@ export default function Duenos() {
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0 max-w-[55%]">
-                  <p className="text-[10px] text-[#94A3B8]">Le debes</p>
-                  <p className={`font-bold ${o.balance > 0.005 ? 'text-[#DC2626]' : 'text-[#059669]'} ${moneyClass(formatPrice(o.balance, 'CUP'))}`}>
-                    {formatPrice(o.balance, 'CUP')}
+                  <p className="text-[10px] text-[#94A3B8]">
+                    {o.balance < -0.005 ? 'A tu favor' : 'Le debes'}
+                  </p>
+                  <p className={`font-bold ${o.balance > 0.005 ? 'text-[#DC2626]' : o.balance < -0.005 ? 'text-[#D97706]' : 'text-[#059669]'} ${moneyClass(formatPrice(Math.abs(o.balance), 'CUP'))}`}>
+                    {formatPrice(Math.abs(o.balance), 'CUP')}
                   </p>
                 </div>
               </div>
@@ -499,11 +501,17 @@ function OwnerDetail({
         <div className="bg-white rounded-2xl shadow-sm p-4">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-sm text-[#475569] block">Saldo a pagar</span>
-              <span className="text-[11px] text-[#94A3B8]">lo vendido menos lo que ya le diste</span>
+              <span className="text-sm text-[#475569] block">
+                {owner.balance < -0.005 ? 'Le pagaste de más' : 'Saldo a pagar'}
+              </span>
+              <span className="text-[11px] text-[#94A3B8]">
+                {owner.balance < -0.005
+                  ? 'tienes que recuperar ese dinero'
+                  : 'lo vendido menos lo que ya le diste'}
+              </span>
             </div>
-            <span className={`font-bold text-right ${owner.balance > 0.005 ? 'text-[#DC2626]' : 'text-[#059669]'} ${moneyClass(formatPrice(owner.balance, 'CUP'), 'xl')}`}>
-              {formatPrice(owner.balance, 'CUP')}
+            <span className={`font-bold text-right ${owner.balance > 0.005 ? 'text-[#DC2626]' : owner.balance < -0.005 ? 'text-[#D97706]' : 'text-[#059669]'} ${moneyClass(formatPrice(Math.abs(owner.balance), 'CUP'), 'xl')}`}>
+              {formatPrice(Math.abs(owner.balance), 'CUP')}
             </span>
           </div>
           <div className="grid grid-cols-3 gap-2 mt-3 text-center">

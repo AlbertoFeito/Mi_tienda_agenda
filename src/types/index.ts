@@ -3,6 +3,7 @@ export type PaymentMethod = 'cash' | 'transfer' | 'installment';
 export type Currency = 'CUP' | 'USD' | 'EUR' | 'MLC';
 export type InstallmentFrequency = 'weekly' | 'biweekly' | 'monthly';
 export type InstallmentStatus = 'active' | 'completed' | 'cancelled';
+export type SaleStatus = 'active' | 'cancelled';
 export type PeriodFilter = 'today' | 'week' | 'month' | 'year';
 
 export interface Product {
@@ -45,6 +46,13 @@ export interface Sale {
   discount: number;
   createdAt: Date;
   receiptNumber: string;
+  /**
+   * Undefined means active: sales recorded before cancelling existed carry no
+   * status, and must keep counting.
+   */
+  status?: SaleStatus;
+  cancelledAt?: string;
+  cancelReason?: string;
 }
 
 export interface Customer {
