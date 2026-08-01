@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { syncReminders } from '@/lib/reminders';
+import { restoreDraws } from '@/lib/stock';
 import type { Installment, InstallmentPayment, Sale } from '@/types';
 
 /**
@@ -83,7 +84,7 @@ export async function cancelSale(saleId: number, reason?: string): Promise<Cance
 
   let missingProducts = 0;
 
-  await db.transaction('rw', db.sales, db.products, db.installments, async () => {
+  await db.transaction('rw', db.sales, db.products, db.installments, db.stockLots, async () => {
     await db.sales.update(saleId, {
       status: 'cancelled',
       cancelledAt: new Date().toISOString(),
@@ -91,6 +92,9 @@ export async function cancelSale(saleId: number, reason?: string): Promise<Cance
     });
 
     for (const item of sale.items) {
+      // Cada unidad vuelve al lote del que salió, con su propio costo.
+      if (item.lots?.length) await restoreDraws(item.lots);
+
       const product = await db.products.get(item.productId);
       // The product may have been deleted since; skip it rather than fail the
       // whole cancellation, and report how many could not be restored.

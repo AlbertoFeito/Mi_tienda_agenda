@@ -7,6 +7,7 @@ import { useApp } from '@/contexts/AppContext';
 import UpcomingCollections from '@/components/UpcomingCollections';
 import FirstSteps from '@/components/FirstSteps';
 import { moneyClass } from '@/lib/format';
+import { lineProfitCUP } from '@/lib/cost';
 import { activeSales } from '@/lib/sales';
 import { isToday, isPast, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
@@ -39,12 +40,8 @@ export default function Dashboard() {
     // Calcular ganancia de hoy: (precio venta - precio costo) por producto
     const todayProfit = todaySalesList.reduce((sum, s) => {
       return sum + s.items.reduce((itemSum, item) => {
-        // Buscar precio de costo del producto
         const product = products.find(p => p.id === item.productId);
-        if (!product) return itemSum;
-        const costPriceCUP = convertToCUP(product.costPrice, product.costCurrency);
-        const salePriceCUP = convertToCUP(item.unitPrice, item.unitCurrency);
-        return itemSum + (salePriceCUP - costPriceCUP) * item.quantity;
+        return itemSum + lineProfitCUP(item, product, convertToCUP);
       }, 0);
     }, 0);
 

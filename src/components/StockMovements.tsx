@@ -6,6 +6,7 @@ import { useApp } from '@/contexts/AppContext';
 import { useBackHandler } from '@/lib/backHandler';
 import NumberField from '@/components/NumberField';
 import { MERMA_REASONS, movementsFor, recordEntry, recordLoss, summarize } from '@/lib/stock';
+import { lotsFor, type ToCUP } from '@/lib/cost';
 import type { Currency, Product } from '@/types';
 
 /**
@@ -20,8 +21,9 @@ export default function StockMovements({
   /** Keeps the form's stock field in step, so saving cannot undo a movement. */
   onStockChange: (stock: number) => void;
 }) {
-  const { formatPrice, showToast } = useApp();
+  const { formatPrice, showToast, convertToCUP } = useApp();
   const all = useLiveQuery(() => db.stockMovements.toArray(), []) || [];
+  const lots = useLiveQuery(() => db.stockLots.toArray(), []) || [];
   const [sheet, setSheet] = useState<'entrada' | 'merma' | null>(null);
 
   // Read the product back from the database: the one handed in is a snapshot
@@ -31,6 +33,7 @@ export default function StockMovements({
 
   const mine = movementsFor(all, product.id!);
   const totals = summarize(mine);
+  const openLots = lotsFor(lots, product.id!);
 
   return (
     <div className="space-y-3 pt-2 border-t border-gray-100">
@@ -65,6 +68,29 @@ export default function StockMovements({
         </div>
       )}
 
+      {openLots.length > 0 && (
+        <div>
+          <p className="text-xs text-[#94A3B8] mb-1">
+            Lotes en existencia (se vende primero el más antiguo)
+          </p>
+          <div className="bg-white rounded-xl border border-[#E2E8F0] divide-y divide-[#F1F5F9]">
+            {openLots.map((l) => (
+              <div key={l.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                <span className="text-[#475569]">
+                  <strong className="tabular-nums">{l.remaining}</strong> de {l.quantity}
+                  <span className="text-xs text-[#94A3B8]">
+                    {' · '}{new Date(l.createdAt).toLocaleDateString('es-CU')}
+                  </span>
+                </span>
+                <span className="font-medium text-[#0F172A] tabular-nums flex-shrink-0">
+                  {formatPrice(l.unitCostCUP, 'CUP')} c/u
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {mine.length > 0 && (
         <div className="bg-white rounded-xl border border-[#E2E8F0] divide-y divide-[#F1F5F9] max-h-56 overflow-y-auto">
           {mine.slice(0, 20).map((m) => (
@@ -94,6 +120,7 @@ export default function StockMovements({
       {sheet === 'entrada' && (
         <EntrySheet
           product={product}
+          toCUP={convertToCUP}
           onClose={() => setSheet(null)}
           onDone={(msg, stock) => { showToast(msg, 'success'); onStockChange(stock); setSheet(null); }}
         />
@@ -101,6 +128,7 @@ export default function StockMovements({
       {sheet === 'merma' && (
         <LossSheet
           product={product}
+          toCUP={convertToCUP}
           onClose={() => setSheet(null)}
           onDone={(msg, stock) => { showToast(msg, 'success'); onStockChange(stock); setSheet(null); }}
           onError={(msg) => showToast(msg, 'error')}
@@ -125,10 +153,12 @@ function Sheet({ title, subtitle, children }: { title: string; subtitle?: string
 
 function EntrySheet({
   product,
+  toCUP,
   onClose,
   onDone,
 }: {
   product: Product;
+  toCUP: ToCUP;
   onClose: () => void;
   onDone: (message: string, stock: number) => void;
 }) {
@@ -152,6 +182,7 @@ function EntrySheet({
       unitCurrency: currency,
       updateCost: updateCost && costChanged,
       notes,
+      toCUP,
     });
     setBusy(false);
     if (!res.ok) return;
@@ -202,9 +233,10 @@ function EntrySheet({
                 className="w-5 h-5 mt-0.5 flex-shrink-0"
               />
               <span className="text-sm text-[#475569]">
-                Este pasa a ser el precio de costo del producto.
+                Este pasa a ser el precio de referencia del producto.
                 <span className="block text-xs text-[#94A3B8] mt-0.5">
-                  Cambia cómo se calcula la ganancia de aquí en adelante.
+                  Este lote guarda su propio precio pase lo que pase; la referencia solo
+                  se usa para existencias sin lote.
                 </span>
               </span>
             </label>
@@ -241,11 +273,13 @@ function EntrySheet({
 
 function LossSheet({
   product,
+  toCUP,
   onClose,
   onDone,
   onError,
 }: {
   product: Product;
+  toCUP: ToCUP;
   onClose: () => void;
   onDone: (message: string, stock: number) => void;
   onError: (message: string) => void;
@@ -259,7 +293,7 @@ function LossSheet({
 
   const save = async () => {
     setBusy(true);
-    const res = await recordLoss({ productId: product.id!, quantity, reason, notes });
+    const res = await recordLoss({ productId: product.id!, quantity, reason, notes, toCUP });
     setBusy(false);
     if (!res.ok) {
       if (res.error === 'sin-stock') {

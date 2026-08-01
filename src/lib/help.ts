@@ -60,7 +60,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     steps: [
       'Toca el botón + para crear un producto.',
       'Elige arriba si es Propio o Ajeno.',
-      'Pon el Precio de Costo: lo que te costó a ti, o lo que el dueño quiere recibir.',
+      'Pon el Precio de Costo: lo que te costó a ti, o lo que el dueño quiere recibir. Es la referencia; cada entrada de mercancía guarda después su propio precio.',
       'Pon el Precio de Venta: en cuánto lo vas a dar.',
       'Si es Ajeno, elige el dueño de la lista.',
       'Guarda.',
@@ -69,6 +69,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       'La app te enseña la ganancia por unidad mientras escribes los precios.',
       'En los ajenos hay una calculadora: pones el % que quieres ganar y te sugiere el precio de venta.',
       'El Stock Mínimo es el número a partir del cual te avisa que se está acabando.',
+      'Usa Marca cuando tengas dos productos con el mismo nombre: sale junto al nombre en el carrito, en el recibo y en el historial.',
     ],
     keywords: ['productos', 'propio', 'ajeno', 'stock', 'inventario', 'precio', 'costo', 'foto', 'categoría'],
   },
@@ -208,12 +209,13 @@ export const HELP_TOPICS: HelpTopic[] = [
       '“Entrada” para lo que llega; “Merma” para lo que se pierde.',
     ],
     notes: [
-      'En una entrada puedes anotar a cómo te salió cada unidad, y decidir si ese pasa a ser el nuevo precio de costo.',
+      'Cada entrada guarda su propio precio, y se vende primero la mercancía más antigua. Si compraste 20 a 1.000 y después 20 a 1.500, las primeras 20 que vendas cuentan a 1.000.',
+      'El precio se guarda en pesos al cambio del día que entró. Si mañana sube el dólar, lo que ya entró no cambia de valor.',
       'La merma no deja sacar más de lo que hay: si el número no cuadra, algo más está mal.',
       'Si el artículo es de un dueño, la merma no le cobra nada automáticamente. Si acuerdan que se lo pagas, regístralo como pago en Dueños.',
-      'Debajo de los botones queda el historial: qué entró, qué se perdió y cuándo.',
+      'Debajo de los botones ves los lotes que te quedan con su precio, y el historial de qué entró y qué se perdió.',
     ],
-    keywords: ['entrada', 'merma', 'inventario', 'stock', 'compra', 'rota', 'vencida', 'perdida', 'existencia'],
+    keywords: ['entrada', 'merma', 'inventario', 'stock', 'compra', 'rota', 'vencida', 'perdida', 'existencia', 'lote', 'costo', 'precio'],
   },
   {
     id: 'monedas',

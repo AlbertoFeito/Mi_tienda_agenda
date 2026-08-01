@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
-import type { Currency, StockMovement, StockMovementType } from '@/types';
+import { drawFromLots, lotsFor, referenceCostCUP, type ToCUP } from '@/lib/cost';
+import type { Currency, SaleItemLot, StockMovement, StockMovementType } from '@/types';
 
 /**
  * Stock that moves without a sale behind it.
@@ -30,6 +31,10 @@ export interface MovementResult {
   error?: 'sin-producto' | 'cantidad-invalida' | 'sin-stock';
   /** Stock the product ended up with. */
   stock?: number;
+  /** The batch this entry opened. */
+  lotId?: number;
+  /** What a write-off cost, from the batches it consumed. */
+  costCUP?: number;
   /** Stock available, when the write-off asked for more than there is. */
   available?: number;
 }
@@ -46,16 +51,18 @@ export interface EntryInput {
   unitCost?: number;
   unitCurrency?: Currency;
   /**
-   * Whether this price becomes the product's cost price from now on. Prices
-   * move constantly, so a stale cost quietly makes every margin wrong.
+   * Whether this price also becomes the product's reference cost price, used
+   * for stock that has no batch behind it.
    */
   updateCost?: boolean;
   notes?: string;
+  /** Converts the entry cost to CUP at today's rate. */
+  toCUP?: ToCUP;
 }
 
 /** Goods arriving: more stock, and the record of what they cost. */
 export async function recordEntry(input: EntryInput): Promise<MovementResult> {
-  const { productId, quantity, unitCost, unitCurrency, updateCost, notes } = input;
+  const { productId, quantity, unitCost, unitCurrency, updateCost, notes, toCUP } = input;
 
   if (!Number.isFinite(quantity) || quantity <= 0) {
     return { ok: false, error: 'cantidad-invalida' };
@@ -65,29 +72,56 @@ export async function recordEntry(input: EntryInput): Promise<MovementResult> {
   if (!product?.id) return { ok: false, error: 'sin-producto' };
 
   const stock = applyMovement(product.stock, 'entrada', quantity);
+  const currency = unitCurrency ?? product.costCurrency;
+  const hasCost = Boolean(unitCost && unitCost > 0);
 
-  await db.transaction('rw', db.products, db.stockMovements, async () => {
+  // Converted here and now: the rate of the day this batch arrived is the only
+  // one that describes what it cost, and tomorrow's would rewrite history.
+  const unitCostCUP =
+    hasCost && toCUP
+      ? toCUP(unitCost!, currency)
+      : toCUP
+        ? referenceCostCUP(product, toCUP)
+        : product.costPrice;
+
+  let lotId: number | undefined;
+
+  await db.transaction('rw', db.products, db.stockMovements, db.stockLots, async () => {
+    // Its own batch, with its own price: this is what keeps twenty bought
+    // before the dollar moved apart from twenty bought after.
+    lotId = await db.stockLots.add({
+      productId: product.id!,
+      productName: product.name,
+      quantity,
+      remaining: quantity,
+      unitCost: hasCost ? unitCost : undefined,
+      unitCurrency: hasCost ? currency : undefined,
+      unitCostCUP,
+      notes: notes?.trim() || undefined,
+      createdAt: new Date(),
+    });
+
     await db.stockMovements.add({
       productId: product.id!,
       productName: product.name,
       type: 'entrada',
       quantity,
-      unitCost: unitCost && unitCost > 0 ? unitCost : undefined,
-      unitCurrency: unitCost && unitCost > 0 ? (unitCurrency ?? product.costCurrency) : undefined,
+      unitCost: hasCost ? unitCost : undefined,
+      unitCurrency: hasCost ? currency : undefined,
+      unitCostCUP,
+      lotId,
       notes: notes?.trim() || undefined,
       createdAt: new Date(),
     });
 
     await db.products.update(product.id!, {
       stock,
-      ...(updateCost && unitCost && unitCost > 0
-        ? { costPrice: unitCost, costCurrency: unitCurrency ?? product.costCurrency }
-        : {}),
+      ...(updateCost && hasCost ? { costPrice: unitCost, costCurrency: currency } : {}),
       updatedAt: new Date(),
     });
   });
 
-  return { ok: true, stock };
+  return { ok: true, stock, lotId };
 }
 
 export interface LossInput {
@@ -95,6 +129,8 @@ export interface LossInput {
   quantity: number;
   reason?: string;
   notes?: string;
+  /** Values the units that no batch covers. */
+  toCUP?: ToCUP;
 }
 
 /**
@@ -104,7 +140,7 @@ export interface LossInput {
  * zero: a count that does not add up is worth stopping on, not smoothing over.
  */
 export async function recordLoss(input: LossInput): Promise<MovementResult> {
-  const { productId, quantity, reason, notes } = input;
+  const { productId, quantity, reason, notes, toCUP } = input;
 
   if (!Number.isFinite(quantity) || quantity <= 0) {
     return { ok: false, error: 'cantidad-invalida' };
@@ -119,7 +155,15 @@ export async function recordLoss(input: LossInput): Promise<MovementResult> {
 
   const stock = applyMovement(product.stock, 'merma', quantity);
 
-  await db.transaction('rw', db.products, db.stockMovements, async () => {
+  // A write-off comes out of the oldest batches too, so what was lost is
+  // costed at what those particular units cost.
+  const open = lotsFor(await db.stockLots.toArray(), product.id);
+  const fallback = toCUP ? referenceCostCUP(product, toCUP) : product.costPrice;
+  const { draws, costCUP } = drawFromLots(open, quantity, fallback);
+
+  await db.transaction('rw', db.products, db.stockMovements, db.stockLots, async () => {
+    await consumeDraws(draws);
+
     await db.stockMovements.add({
       productId: product.id!,
       productName: product.name,
@@ -127,13 +171,37 @@ export async function recordLoss(input: LossInput): Promise<MovementResult> {
       quantity,
       reason: reason?.trim() || undefined,
       notes: notes?.trim() || undefined,
+      lots: draws,
+      costCUP,
       createdAt: new Date(),
     });
 
     await db.products.update(product.id!, { stock, updatedAt: new Date() });
   });
 
-  return { ok: true, stock };
+  return { ok: true, stock, costCUP };
+}
+
+/** Subtract the drawn units from each batch they came out of. */
+export async function consumeDraws(draws: SaleItemLot[]): Promise<void> {
+  for (const d of draws) {
+    if (d.lotId == null) continue;
+    const lot = await db.stockLots.get(d.lotId);
+    if (!lot?.id) continue;
+    await db.stockLots.update(lot.id, { remaining: Math.max(0, lot.remaining - d.quantity) });
+  }
+}
+
+/** Put units back into the batches they came from, when a sale is undone. */
+export async function restoreDraws(draws: SaleItemLot[]): Promise<void> {
+  for (const d of draws) {
+    if (d.lotId == null) continue;
+    const lot = await db.stockLots.get(d.lotId);
+    if (!lot?.id) continue;
+    await db.stockLots.update(lot.id, {
+      remaining: Math.min(lot.quantity, lot.remaining + d.quantity),
+    });
+  }
 }
 
 /**

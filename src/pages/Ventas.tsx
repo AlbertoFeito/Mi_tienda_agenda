@@ -4,10 +4,12 @@ import { Search, X, ShoppingCart, Minus, Plus, Trash2, CreditCard, Banknote, Rep
 import { db } from '@/lib/db';
 import NumberField from '@/components/NumberField';
 import HelpButton from '@/components/HelpButton';
+import { describeProduct, drawFromLots, lotsFor, referenceCostCUP } from '@/lib/cost';
+import { consumeDraws } from '@/lib/stock';
 import ReceiptModal from '@/components/ReceiptModal';
 import type { ReceiptData } from '@/lib/receipt';
 import { useApp } from '@/contexts/AppContext';
-import type { Product, CartItem, PaymentMethod, Currency } from '@/types';
+import type { Product, CartItem, PaymentMethod, Currency, SaleItemLot } from '@/types';
 
 export default function Ventas() {
   const { formatPrice, convertToCUP, showToast, settings } = useApp();
@@ -36,7 +38,8 @@ export default function Ventas() {
   const categories = ['Todos', ...Array.from(new Set(products.map(p => p.category)))];
   
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = p.name.toLowerCase().includes(q) || (p.brand || '').toLowerCase().includes(q);
     const matchesCategory = selectedCategory === 'Todos' || p.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -116,7 +119,7 @@ export default function Ventas() {
       }
       return [...prev, {
         productId: product.id!,
-        productName: product.name,
+        productName: describeProduct(product),
         quantity: 1,
         unitPrice: product.salePrice,
         unitCurrency: product.saleCurrency
@@ -160,16 +163,37 @@ export default function Ventas() {
     }
     
     try {
-      const saleItems = cart.map(item => ({
-        productId: item.productId,
-        productName: item.productName,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        unitCurrency: item.unitCurrency,
-        subtotal: convertToCUP(item.unitPrice * item.quantity, item.unitCurrency)
-      }));
+      // Cada línea sale de los lotes más antiguos primero, y se queda con el
+      // costo de esos lotes concretos. Si mañana cambia la tasa o entra
+      // mercancía más cara, la ganancia de esta venta ya no se mueve.
+      const allLots = await db.stockLots.toArray();
+      const drawnByLot: SaleItemLot[] = [];
+      const saleItems = cart.map(item => {
+        const product = products.find(p => p.id === item.productId);
+        const open = lotsFor(allLots, item.productId);
+        const fallback = product ? referenceCostCUP(product, convertToCUP) : 0;
+        const { draws, costCUP } = drawFromLots(open, item.quantity, fallback);
+        // Descontar en memoria, por si dos líneas tocan el mismo producto.
+        for (const d of draws) {
+          if (d.lotId == null) continue;
+          const lot = allLots.find(l => l.id === d.lotId);
+          if (lot) lot.remaining -= d.quantity;
+          drawnByLot.push(d);
+        }
+        return {
+          productId: item.productId,
+          productName: item.productName,
+          brand: product?.brand,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          unitCurrency: item.unitCurrency,
+          subtotal: convertToCUP(item.unitPrice * item.quantity, item.unitCurrency),
+          costCUP,
+          lots: draws,
+        };
+      });
 
-      const receiptNumber = await db.transaction('rw', db.sales, db.products, db.installments, async () => {
+      const receiptNumber = await db.transaction('rw', db.sales, db.products, db.installments, db.stockLots, async () => {
         const receipt = await generateReceiptNumber();
         
         const saleId = await db.sales.add({
@@ -183,6 +207,8 @@ export default function Ventas() {
           createdAt: new Date(),
           receiptNumber: receipt
         });
+
+        await consumeDraws(drawnByLot);
 
         for (const item of cart) {
           const product = await db.products.get(item.productId);

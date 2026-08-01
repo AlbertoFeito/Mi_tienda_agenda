@@ -43,6 +43,11 @@ export function computeOwners(
   // Units sold and revenue (CUP) per product, from the sales history.
   const soldQty = new Map<number, number>();
   const revenueCUP = new Map<number, number>();
+  // What the owner is owed, frozen line by line at the moment of each sale.
+  // Recomputing it from today's cost and today's rate made a debt from July
+  // change in August, which no paper ledger would do.
+  const owedFrozen = new Map<number, number>();
+  const owedPendingQty = new Map<number, number>();
   for (const sale of sales) {
     // A cancelled sale never happened: the owner is not owed for it.
     if (!isActive(sale)) continue;
@@ -52,6 +57,12 @@ export function computeOwners(
         it.productId,
         (revenueCUP.get(it.productId) || 0) + convertToCUP(it.unitPrice * it.quantity, it.unitCurrency),
       );
+      if (it.costCUP !== undefined) {
+        owedFrozen.set(it.productId, (owedFrozen.get(it.productId) || 0) + it.costCUP);
+      } else {
+        // Sold before the cost was frozen; valued with today's figures below.
+        owedPendingQty.set(it.productId, (owedPendingQty.get(it.productId) || 0) + it.quantity);
+      }
     }
   }
 
@@ -69,7 +80,9 @@ export function computeOwners(
 
     const sold = product.id != null ? soldQty.get(product.id) || 0 : 0;
     const revenue = product.id != null ? revenueCUP.get(product.id) || 0 : 0;
-    const owedCUP = convertToCUP(product.costPrice * sold, product.costCurrency);
+    const frozen = product.id != null ? owedFrozen.get(product.id) || 0 : 0;
+    const pending = product.id != null ? owedPendingQty.get(product.id) || 0 : 0;
+    const owedCUP = frozen + convertToCUP(product.costPrice * pending, product.costCurrency);
     const profitCUP = revenue - owedCUP;
 
     if (!owners.has(name)) {

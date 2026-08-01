@@ -7,6 +7,7 @@ import type {
   InstallmentPayment,
   OwnerPayment,
   StockMovement,
+  StockLot,
   AppSettings,
 } from '@/types';
 import {
@@ -38,6 +39,7 @@ const DATE_FIELDS: Record<TableName, string[]> = {
   installmentPayments: ['paymentDate', 'createdAt'],
   ownerPayments: ['createdAt'],
   stockMovements: ['createdAt'],
+  stockLots: ['createdAt'],
   settings: ['createdAt', 'updatedAt'],
 };
 
@@ -170,6 +172,7 @@ export const db = {
   installmentPayments: makeTable<InstallmentPayment>('installmentPayments'),
   ownerPayments: makeTable<OwnerPayment>('ownerPayments'),
   stockMovements: makeTable<StockMovement>('stockMovements'),
+  stockLots: makeTable<StockLot>('stockLots'),
   settings: makeTable<AppSettings>('settings'),
 
   /**
@@ -212,6 +215,7 @@ export async function exportData(): Promise<string> {
     installmentPayments: await db.installmentPayments.toArray(),
     ownerPayments: await db.ownerPayments.toArray(),
     stockMovements: await db.stockMovements.toArray(),
+    stockLots: await db.stockLots.toArray(),
     settings: await db.settings.toArray(),
     exportDate: new Date().toISOString(),
   };
@@ -222,7 +226,7 @@ export async function importData(jsonString: string): Promise<void> {
   const data = JSON.parse(jsonString);
   await db.transaction(
     'rw',
-    [db.products, db.sales, db.customers, db.owners, db.installments, db.installmentPayments, db.ownerPayments, db.stockMovements, db.settings],
+    [db.products, db.sales, db.customers, db.owners, db.installments, db.installmentPayments, db.ownerPayments, db.stockMovements, db.stockLots, db.settings],
     async () => {
       await db.products.clear();
       await db.sales.clear();
@@ -232,6 +236,7 @@ export async function importData(jsonString: string): Promise<void> {
       await db.installmentPayments.clear();
       await db.ownerPayments.clear();
       await db.stockMovements.clear();
+      await db.stockLots.clear();
       await db.settings.clear();
 
       if (data.products) await db.products.bulkAdd(data.products);
@@ -242,6 +247,7 @@ export async function importData(jsonString: string): Promise<void> {
       if (data.installmentPayments) await db.installmentPayments.bulkAdd(data.installmentPayments);
       if (data.ownerPayments) await db.ownerPayments.bulkAdd(data.ownerPayments);
       if (data.stockMovements) await db.stockMovements.bulkAdd(data.stockMovements);
+      if (data.stockLots) await db.stockLots.bulkAdd(data.stockLots);
       if (data.settings) await db.settings.bulkAdd(data.settings);
     },
   );

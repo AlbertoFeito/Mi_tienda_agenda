@@ -9,6 +9,8 @@ export type PeriodFilter = 'today' | 'week' | 'month' | 'year';
 export interface Product {
   id?: number;
   name: string;
+  /** Brand, when two products share a name and only the label differs. */
+  brand?: string;
   category: string;
   type: ProductType;
   costPrice: number;
@@ -29,10 +31,33 @@ export interface Product {
 export interface SaleItem {
   productId: number;
   productName: string;
+  /** Copied onto the line so the receipt and history stay unambiguous. */
+  brand?: string;
   quantity: number;
   unitPrice: number;
   unitCurrency: Currency;
   subtotal: number;
+  /**
+   * What this line cost in total, in CUP, on the day it was sold.
+   *
+   * Without it the profit of a past sale was recalculated with today's cost and
+   * today's exchange rate, so July's earnings moved on their own every time the
+   * dollar did. Undefined on sales made before this existed.
+   */
+  costCUP?: number;
+  /**
+   * Which batches the units came out of. Kept so cancelling the sale can put
+   * each unit back where it came from, at its own cost.
+   */
+  lots?: SaleItemLot[];
+}
+
+/** Units of a sale line that came out of one batch. */
+export interface SaleItemLot {
+  /** Undefined for stock that predates batches. */
+  lotId?: number;
+  quantity: number;
+  unitCostCUP: number;
 }
 
 export interface Sale {
@@ -120,8 +145,41 @@ export interface StockMovement {
   /** What the goods cost this time round. Entries only. */
   unitCost?: number;
   unitCurrency?: Currency;
+  /** The entry cost converted to CUP on the day it was recorded. */
+  unitCostCUP?: number;
+  /** The batch this entry created, or the batches a write-off consumed. */
+  lotId?: number;
+  lots?: SaleItemLot[];
+  /** What a write-off cost, in CUP, from the batches it came out of. */
+  costCUP?: number;
   /** For a write-off: broke, expired, lost, taken for personal use. */
   reason?: string;
+  notes?: string;
+  createdAt: Date;
+}
+
+/**
+ * One batch of goods that came in, with the cost it came in at.
+ *
+ * Averaging every purchase into a single figure would hide exactly what matters
+ * here: the twenty bought before the dollar moved did not cost the same as the
+ * twenty bought after. Each batch keeps its own price and is consumed oldest
+ * first.
+ */
+export interface StockLot {
+  id?: number;
+  productId: number;
+  /** Kept on the batch so the history survives deleting the product. */
+  productName: string;
+  /** Units this batch brought in. */
+  quantity: number;
+  /** Units of this batch still unsold. */
+  remaining: number;
+  /** What each unit cost, as it was entered. */
+  unitCost?: number;
+  unitCurrency?: Currency;
+  /** That cost in CUP, at the rate of the day the batch arrived. */
+  unitCostCUP: number;
   notes?: string;
   createdAt: Date;
 }

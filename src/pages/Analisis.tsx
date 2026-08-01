@@ -6,6 +6,7 @@ import { TrendingUp, DollarSign, Package, CreditCard } from 'lucide-react';
 import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
 import SalesHistory from '@/components/SalesHistory';
+import { lineCostCUP, lineProfitCUP } from '@/lib/cost';
 import { activeSales } from '@/lib/sales';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, subDays } from 'date-fns';
 import type { PeriodFilter } from '@/types';
@@ -77,12 +78,7 @@ export default function Analisis() {
     const totalProfit = filteredSales.reduce((sum, s) => {
       return sum + s.items.reduce((itemSum, item) => {
         const product = products?.find(p => p.id === item.productId);
-        if (product) {
-          const costInCUP = convertToCUP(product.costPrice * item.quantity, product.costCurrency);
-          const saleInCUP = convertToCUP(item.unitPrice * item.quantity, item.unitCurrency);
-          return itemSum + (saleInCUP - costInCUP);
-        }
-        return itemSum;
+        return itemSum + lineProfitCUP(item, product, convertToCUP);
       }, 0);
     }, 0);
     const totalProducts = filteredSales.reduce((sum, s) => sum + s.items.reduce((i, item) => i + item.quantity, 0), 0);
@@ -142,8 +138,8 @@ export default function Analisis() {
       s.items.forEach(item => {
         const product = products?.find(p => p.id === item.productId);
         const catName = product?.category || 'Sin categoría';
-        const saleInCUP = convertToCUP(item.unitPrice * item.quantity, item.unitCurrency);
-        const costInCUP = product ? convertToCUP(product.costPrice * item.quantity, product.costCurrency) : 0;
+        const saleInCUP = item.subtotal;
+        const costInCUP = lineCostCUP(item, product, convertToCUP);
 
         if (!catMap.has(catName)) {
           catMap.set(catName, { name: catName, revenue: 0, profit: 0, count: 0 });

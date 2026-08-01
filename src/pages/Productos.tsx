@@ -32,9 +32,11 @@ export default function Productos() {
     if (filter === 'consignment') result = result.filter(p => p.type === 'consignment');
     if (filter === 'lowstock') result = result.filter(p => p.stock <= p.minStock);
     if (searchQuery) {
+      const q = searchQuery.toLowerCase();
       result = result.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchQuery.toLowerCase())
+        p.name.toLowerCase().includes(q) ||
+        (p.brand || '').toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q)
       );
     }
     return result;
@@ -139,6 +141,9 @@ export default function Productos() {
                         columna no cede y empuja el precio fuera de la tarjeta. */}
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-gray-900 truncate">{product.name}</p>
+                      {product.brand && (
+                        <p className="text-xs text-gray-500 truncate">{product.brand}</p>
+                      )}
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
                           product.type === 'own' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
@@ -193,6 +198,7 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
       [],
     ) || [];
   const [name, setName] = useState(product?.name || '');
+  const [brand, setBrand] = useState(product?.brand || '');
   const [category, setCategory] = useState(product?.category || '');
   const [customCategory, setCustomCategory] = useState('');
   const [type, setType] = useState<ProductType>(product?.type || 'own');
@@ -245,6 +251,7 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
 
     const data = {
       name: name.trim(),
+      brand: brand.trim() || undefined,
       category: finalCategory,
       type,
       costPrice,
@@ -367,6 +374,18 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nombre del producto"
+            className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
+          />
+        </div>
+
+        {/* Marca */}
+        <div>
+          <label className="text-sm font-medium text-[#475569] block mb-1">Marca</label>
+          <input
+            type="text"
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+            placeholder="Para distinguir dos productos con el mismo nombre"
             className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
           />
         </div>
