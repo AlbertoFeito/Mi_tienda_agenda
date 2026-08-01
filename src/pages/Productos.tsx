@@ -9,6 +9,7 @@ import HelpButton from '@/components/HelpButton';
 import { moneyClass } from '@/lib/format';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import StockMovements from '@/components/StockMovements';
+import { recordEntry, recordInitialStock, recordLoss } from '@/lib/stock';
 import ImageViewer from '@/components/ImageViewer';
 import { useApp } from '@/contexts/AppContext';
 import type { Product, ProductType, Currency } from '@/types';
@@ -271,9 +272,37 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
     try {
       if (product?.id) {
         await db.products.update(product.id, data);
+        // Corregir la existencia a mano también tiene que dejar rastro, o los
+        // lotes y el stock dejan de contar lo mismo.
+        const diff = stock - product.stock;
+        if (diff > 0) {
+          await recordEntry({
+            productId: product.id,
+            quantity: diff,
+            unitCost: costPrice,
+            unitCurrency: costCurrency,
+            toCUP: convertToCUP,
+            notes: 'Ajuste de existencia',
+            skipStock: true,
+          });
+        } else if (diff < 0) {
+          await recordLoss({
+            productId: product.id,
+            quantity: -diff,
+            reason: 'Ajuste de existencia',
+            toCUP: convertToCUP,
+          });
+          await db.products.update(product.id, { stock });
+        }
         showToast('Producto actualizado', 'success');
       } else {
-        await db.products.add(data);
+        const newId = await db.products.add(data);
+        // La existencia inicial abre su lote, con el costo del día de hoy: sin
+        // él esas unidades no tendrían precio propio y, peor, una entrada
+        // posterior se vendería antes que ellas.
+        if (stock > 0) {
+          await recordInitialStock({ productId: newId, quantity: stock, toCUP: convertToCUP });
+        }
         showToast('Producto agregado', 'success');
       }
       onBack();

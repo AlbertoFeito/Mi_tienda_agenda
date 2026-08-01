@@ -58,11 +58,16 @@ export interface EntryInput {
   notes?: string;
   /** Converts the entry cost to CUP at today's rate. */
   toCUP?: ToCUP;
+  /**
+   * The stock already includes these units, so only open the batch. Used when
+   * the product form has just written the figure itself.
+   */
+  skipStock?: boolean;
 }
 
 /** Goods arriving: more stock, and the record of what they cost. */
 export async function recordEntry(input: EntryInput): Promise<MovementResult> {
-  const { productId, quantity, unitCost, unitCurrency, updateCost, notes, toCUP } = input;
+  const { productId, quantity, unitCost, unitCurrency, updateCost, notes, toCUP, skipStock } = input;
 
   if (!Number.isFinite(quantity) || quantity <= 0) {
     return { ok: false, error: 'cantidad-invalida' };
@@ -71,7 +76,7 @@ export async function recordEntry(input: EntryInput): Promise<MovementResult> {
   const product = await db.products.get(productId);
   if (!product?.id) return { ok: false, error: 'sin-producto' };
 
-  const stock = applyMovement(product.stock, 'entrada', quantity);
+  const stock = skipStock ? product.stock : applyMovement(product.stock, 'entrada', quantity);
   const currency = unitCurrency ?? product.costCurrency;
   const hasCost = Boolean(unitCost && unitCost > 0);
 
@@ -122,6 +127,39 @@ export async function recordEntry(input: EntryInput): Promise<MovementResult> {
   });
 
   return { ok: true, stock, lotId };
+}
+
+/**
+ * The batch a product starts life with.
+ *
+ * Creating a product with stock straight away used to open no batch at all, so
+ * those units had no cost of their own: they fell back to the reference price
+ * at today's rate, and — worse — a later entry got consumed *before* them,
+ * because only batches take part in the ordering. First in, last out, which is
+ * backwards.
+ */
+export async function recordInitialStock(input: {
+  productId: number;
+  quantity: number;
+  toCUP: ToCUP;
+  notes?: string;
+}): Promise<MovementResult> {
+  const { productId, quantity, toCUP, notes } = input;
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    return { ok: false, error: 'cantidad-invalida' };
+  }
+  const product = await db.products.get(productId);
+  if (!product?.id) return { ok: false, error: 'sin-producto' };
+
+  return recordEntry({
+    productId,
+    quantity,
+    unitCost: product.costPrice,
+    unitCurrency: product.costCurrency,
+    toCUP,
+    notes: notes ?? 'Existencia inicial',
+    skipStock: true,
+  });
 }
 
 export interface LossInput {

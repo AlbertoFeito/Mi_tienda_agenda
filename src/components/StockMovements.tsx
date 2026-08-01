@@ -162,16 +162,24 @@ function EntrySheet({
   onClose: () => void;
   onDone: (message: string, stock: number) => void;
 }) {
+  const { formatPrice } = useApp();
   const [quantity, setQuantity] = useState(1);
   const [unitCost, setUnitCost] = useState(product.costPrice || 0);
   const [currency, setCurrency] = useState<Currency>(product.costCurrency || 'CUP');
   const [updateCost, setUpdateCost] = useState(true);
+  const [salePrice, setSalePrice] = useState(product.salePrice || 0);
+  const [saleCurrency, setSaleCurrency] = useState<Currency>(product.saleCurrency || 'CUP');
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
 
   useBackHandler(onClose);
 
   const costChanged = unitCost > 0 && unitCost !== product.costPrice;
+  // Lo que dejaría cada unidad DE ESTE lote al precio que se está poniendo.
+  const ganancia =
+    unitCost > 0 && salePrice > 0
+      ? toCUP(salePrice, saleCurrency) - toCUP(unitCost, currency)
+      : null;
 
   const save = async () => {
     setBusy(true);
@@ -184,6 +192,12 @@ function EntrySheet({
       notes,
       toCUP,
     });
+    if (res.ok && (salePrice !== product.salePrice || saleCurrency !== product.saleCurrency)) {
+      // Un costo nuevo suele venir con un precio nuevo, y este es el momento en
+      // que se decide. El precio es uno solo para todo el producto: manda el de
+      // hoy, sobre lo que haya en el estante.
+      await db.products.update(product.id!, { salePrice, saleCurrency, updatedAt: new Date() });
+    }
     setBusy(false);
     if (!res.ok) return;
     onDone(`Entraron ${quantity}. Stock: ${res.stock}`, res.stock!);
@@ -241,6 +255,37 @@ function EntrySheet({
               </span>
             </label>
           )}
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm font-medium text-[#475569]">Precio de venta</label>
+              <select
+                value={saleCurrency}
+                onChange={(e) => setSaleCurrency(e.target.value as Currency)}
+                className="h-8 px-2 rounded-lg border border-[#E2E8F0] text-sm outline-none bg-white"
+              >
+                {(['CUP', 'USD', 'EUR', 'MLC'] as Currency[]).map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <NumberField value={salePrice} onChange={setSalePrice} decimals placeholder="0.00" />
+            {ganancia !== null && (
+              <p className="text-xs text-[#475569] mt-1">
+                Ganancia sobre este lote:{' '}
+                <strong className={ganancia >= 0 ? 'text-[#059669]' : 'text-red-500'}>
+                  {formatPrice(ganancia, 'CUP')}
+                </strong>{' '}
+                por unidad
+              </p>
+            )}
+            {(salePrice !== product.salePrice || saleCurrency !== product.saleCurrency) && (
+              <p className="text-xs text-[#92400E] bg-[#FEF3C7] border border-[#FDE68A] rounded-lg px-2.5 py-2 mt-2">
+                El precio de venta es uno solo para el producto: también se aplica a las
+                {' '}{product.stock} unidades que ya tenías.
+              </p>
+            )}
+          </div>
 
           <div>
             <label className="text-sm font-medium text-[#475569] block mb-1">Nota (opcional)</label>

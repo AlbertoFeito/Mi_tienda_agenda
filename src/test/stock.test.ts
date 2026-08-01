@@ -287,3 +287,65 @@ describe('a sale drawing on batches, and undoing it', () => {
     expect((await db.stockLots.get(lotId))!.remaining).toBe(3);
   });
 });
+
+describe('el escenario del café: existencia inicial y una entrada después', () => {
+  beforeEach(async () => {
+    localStorage.clear();
+    await wipeAll();
+  });
+
+  const julio = (a: number, c: Currency) => (c === 'USD' ? a * 320 : a);
+  const agosto = (a: number, c: Currency) => (c === 'USD' ? a * 400 : a);
+
+  it('vende primero las viejas, y cada una a lo que costó', async () => {
+    const { recordInitialStock } = await import('@/lib/stock');
+    const { drawFromLots, lotsFor, referenceCostCUP } = await import('@/lib/cost');
+
+    // Café La Llave: costo 10 USD, con el dólar a 320. Stock inicial 20.
+    const id = await seedProduct({
+      name: 'Café', brand: 'La Llave',
+      costPrice: 10, costCurrency: 'USD',
+      salePrice: 15, saleCurrency: 'USD',
+      stock: 20,
+    });
+    await recordInitialStock({ productId: id, quantity: 20, toCUP: julio });
+
+    // Meses después entran 10 más a 12 USD, ya con el dólar a 400.
+    await recordEntry({ productId: id, quantity: 10, unitCost: 12, unitCurrency: 'USD', toCUP: agosto });
+
+    const prod = (await db.products.get(id))!;
+    expect(prod.stock).toBe(30);
+
+    const open = lotsFor(await db.stockLots.toArray(), id);
+    // Dos lotes: 20 a 3.200 (10 USD × 320) y 10 a 4.800 (12 USD × 400).
+    expect(open.map((l) => l.unitCostCUP)).toEqual([3200, 4800]);
+
+    const { draws, costCUP, uncovered } = drawFromLots(open, 25, referenceCostCUP(prod, agosto));
+
+    // Las 20 viejas salen PRIMERO, a lo que costaron de verdad.
+    expect(draws).toEqual([
+      { lotId: open[0].id, quantity: 20, unitCostCUP: 3200 },
+      { lotId: open[1].id, quantity: 5, unitCostCUP: 4800 },
+    ]);
+    // 20 × 3.200 + 5 × 4.800 = 88.000, no los 108.000 que salían antes.
+    expect(costCUP).toBe(88_000);
+    expect(uncovered).toBe(0);
+  });
+
+  it('deja rastro cuando se corrige la existencia a mano', async () => {
+    const { recordInitialStock } = await import('@/lib/stock');
+    const id = await seedProduct({ stock: 5, costPrice: 1000, costCurrency: 'CUP' });
+    await recordInitialStock({ productId: id, quantity: 5, toCUP: cup });
+
+    // Subir la cuenta de 5 a 8 abre un lote por las 3 que aparecieron.
+    await recordEntry({
+      productId: id, quantity: 3, unitCost: 1000, toCUP: cup,
+      notes: 'Ajuste de existencia', skipStock: true,
+    });
+
+    const lots = (await db.stockLots.toArray()).sort((a, b) => a.id! - b.id!);
+    expect(lots.map((l) => l.quantity)).toEqual([5, 3]);
+    // skipStock: el formulario ya escribió la cifra, el lote no la vuelve a sumar.
+    expect((await db.products.get(id))!.stock).toBe(5);
+  });
+});
