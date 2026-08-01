@@ -26,6 +26,7 @@ export const TABLE_NAMES = [
   'installments',
   'installmentPayments',
   'ownerPayments',
+  'stockMovements',
   'settings',
 ] as const;
 

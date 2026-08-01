@@ -8,6 +8,7 @@ import NumberField from '@/components/NumberField';
 import HelpButton from '@/components/HelpButton';
 import { moneyClass } from '@/lib/format';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import StockMovements from '@/components/StockMovements';
 import ImageViewer from '@/components/ImageViewer';
 import { useApp } from '@/contexts/AppContext';
 import type { Product, ProductType, Currency } from '@/types';
@@ -527,6 +528,9 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
             </p>
           </div>
         )}
+
+        {/* Entradas y mermas: solo tienen sentido sobre un producto ya guardado. */}
+        {product?.id && <StockMovements product={product} onStockChange={setStock} />}
 
         {/* Botones */}
         <div className="space-y-2 pt-4">

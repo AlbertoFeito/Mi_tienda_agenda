@@ -99,6 +99,33 @@ export interface InstallmentPayment {
   createdAt: Date;
 }
 
+/** Why stock moved without a sale behind it. */
+export type StockMovementType = 'entrada' | 'merma';
+
+/**
+ * Stock that came in or was written off.
+ *
+ * Until now the only thing that moved stock was a sale, so restocking meant
+ * editing the number by hand and a broken item had to be faked as a sale. Both
+ * left the inventory saying things that never happened.
+ */
+export interface StockMovement {
+  id?: number;
+  productId: number;
+  /** Kept on the movement so the history survives deleting the product. */
+  productName: string;
+  type: StockMovementType;
+  /** Always positive; the type says which way it goes. */
+  quantity: number;
+  /** What the goods cost this time round. Entries only. */
+  unitCost?: number;
+  unitCurrency?: Currency;
+  /** For a write-off: broke, expired, lost, taken for personal use. */
+  reason?: string;
+  notes?: string;
+  createdAt: Date;
+}
+
 /** A payment the seller makes to a consignment owner (settlement). */
 export interface OwnerPayment {
   id?: number;

@@ -198,6 +198,24 @@ export const HELP_TOPICS: HelpTopic[] = [
     keywords: ['anular', 'cancelar', 'error', 'equivoqué', 'borrar', 'venta', 'devolver', 'corregir'],
   },
   {
+    id: 'inventario',
+    title: 'Entradas de mercancía y mermas',
+    summary:
+      'Cuando entra mercancía nueva, o cuando algo se rompe o se vence, se registra en el propio producto. Así el stock siempre tiene una explicación.',
+    steps: [
+      'Entra en Productos y toca el producto.',
+      'Abajo verás “Movimientos de inventario”.',
+      '“Entrada” para lo que llega; “Merma” para lo que se pierde.',
+    ],
+    notes: [
+      'En una entrada puedes anotar a cómo te salió cada unidad, y decidir si ese pasa a ser el nuevo precio de costo.',
+      'La merma no deja sacar más de lo que hay: si el número no cuadra, algo más está mal.',
+      'Si el artículo es de un dueño, la merma no le cobra nada automáticamente. Si acuerdan que se lo pagas, regístralo como pago en Dueños.',
+      'Debajo de los botones queda el historial: qué entró, qué se perdió y cuándo.',
+    ],
+    keywords: ['entrada', 'merma', 'inventario', 'stock', 'compra', 'rota', 'vencida', 'perdida', 'existencia'],
+  },
+  {
     id: 'monedas',
     title: 'Monedas y tasas de cambio',
     summary:
