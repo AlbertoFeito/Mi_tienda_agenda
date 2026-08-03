@@ -183,3 +183,32 @@ describe('describeProduct', () => {
     expect(describeProduct({ name: 'Aceite', brand: '  ' })).toBe('Aceite');
   });
 });
+
+describe('dos líneas del mismo producto en un carrito', () => {
+  it('no cuenta las mismas unidades dos veces', () => {
+    // La vista previa del carrito descuenta sobre la marcha; sin eso, las dos
+    // líneas se costarían contra el mismo lote y la ganancia saldría inflada.
+    const lots = [
+      lot({ id: 1, remaining: 10, unitCostCUP: 100, createdAt: new Date('2026-07-01') }),
+      lot({ id: 2, remaining: 10, unitCostCUP: 110, createdAt: new Date('2026-08-01') }),
+    ];
+
+    const left = new Map<number, number>();
+    let total = 0;
+    for (const cantidad of [6, 6]) {
+      const open = lots.map((l) => ({ ...l, remaining: left.get(l.id!) ?? l.remaining }));
+      const { draws, costCUP } = drawFromLots(open, cantidad, 0);
+      for (const d of draws) {
+        if (d.lotId == null) continue;
+        const before = left.get(d.lotId) ?? open.find((l) => l.id === d.lotId)!.remaining;
+        left.set(d.lotId, before - d.quantity);
+      }
+      total += costCUP;
+    }
+
+    // 10 a 100 y 2 a 110 = 1.220. Sin descontar saldrían 1.200: dos veces el lote barato.
+    expect(total).toBe(1220);
+    expect(left.get(1)).toBe(0);
+    expect(left.get(2)).toBe(8);
+  });
+});

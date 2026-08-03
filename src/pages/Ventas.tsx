@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useLiveQuery } from '@/lib/live';
-import { Search, X, ShoppingCart, Minus, Plus, Trash2, CreditCard, Banknote, Repeat, ChevronDown, User, Package } from 'lucide-react';
+import { Search, X, ShoppingCart, Minus, Plus, Trash2, CreditCard, Banknote, Repeat, ChevronDown, User, Package, AlertTriangle } from 'lucide-react';
 import { db } from '@/lib/db';
 import NumberField from '@/components/NumberField';
 import HelpButton from '@/components/HelpButton';
@@ -62,14 +62,43 @@ export default function Ventas() {
     return Array.from(map.entries());
   })();
 
-  // Estimated profit in CUP: revenue (CUP) − cost (CUP) − discount.
-  const estimatedProfit =
-    cart.reduce((profit, item) => {
+  const lots = useLiveQuery(() => db.stockLots.toArray(), []) || [];
+
+  /**
+   * What this sale will leave, worked out from the very batches it will draw
+   * from — not from the reference price, which is a different number and made
+   * the preview disagree with what the sale then recorded.
+   */
+  const preview = useMemo(() => {
+    // Batches are consumed as we go, so two lines of the same product cannot
+    // both be costed against the same units.
+    const left = new Map<number, number>();
+    let cost = 0;
+
+    for (const item of cart) {
       const product = products.find((p) => p.id === item.productId);
-      const saleCUP = convertToCUP(item.unitPrice * item.quantity, item.unitCurrency);
-      const costCUP = product ? convertToCUP(product.costPrice * item.quantity, product.costCurrency) : 0;
-      return profit + (saleCUP - costCUP);
-    }, 0) - discount;
+      if (!product) continue;
+      const open = lotsFor(lots, item.productId).map((l) => ({
+        ...l,
+        remaining: left.get(l.id!) ?? l.remaining,
+      }));
+      const { draws, costCUP } = drawFromLots(
+        open,
+        item.quantity,
+        referenceCostCUP(product, convertToCUP),
+      );
+      for (const d of draws) {
+        if (d.lotId == null) continue;
+        const before = left.get(d.lotId) ?? open.find((l) => l.id === d.lotId)?.remaining ?? 0;
+        left.set(d.lotId, before - d.quantity);
+      }
+      cost += costCUP;
+    }
+
+    return { cost, profit: finalTotal - cost };
+  }, [cart, lots, products, finalTotal, convertToCUP]);
+
+  const estimatedProfit = preview.profit;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -597,12 +626,31 @@ export default function Ventas() {
                   <span>Total (CUP)</span>
                   <span className="text-[#0F766E]">{formatPrice(finalTotal, 'CUP')}</span>
                 </div>
-                <div className="flex justify-between text-sm pt-1">
-                  <span className="text-gray-600">Ganancia estimada</span>
-                  <span className={`font-semibold ${estimatedProfit >= 0 ? 'text-[#059669]' : 'text-red-500'}`}>
-                    {formatPrice(estimatedProfit, 'CUP')}
-                  </span>
-                </div>
+                {estimatedProfit < 0 ? (
+                  <div className="flex items-start gap-2 rounded-lg px-3 py-2 bg-[#FEE2E2] border border-[#FECACA] text-[#991B1B] mt-1">
+                    <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+                    <span className="text-xs">
+                      Vas a vender <strong>por debajo del costo</strong>: pierdes{' '}
+                      {formatPrice(Math.abs(estimatedProfit), 'CUP')}. Esta mercancía te costó{' '}
+                      {formatPrice(preview.cost, 'CUP')}.
+                    </span>
+                  </div>
+                ) : estimatedProfit < preview.cost * 0.05 ? (
+                  <div className="flex items-start gap-2 rounded-lg px-3 py-2 bg-[#FEF3C7] border border-[#FDE68A] text-[#92400E] mt-1">
+                    <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+                    <span className="text-xs">
+                      Esto casi no te deja nada: {formatPrice(estimatedProfit, 'CUP')} sobre un costo de{' '}
+                      {formatPrice(preview.cost, 'CUP')}.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-sm pt-1">
+                    <span className="text-gray-600">Ganancia estimada</span>
+                    <span className="font-semibold text-[#059669]">
+                      {formatPrice(estimatedProfit, 'CUP')}
+                    </span>
+                  </div>
+                )}
               </div>
               
               <div className="h-20" />
