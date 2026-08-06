@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import Portal from '@/components/Portal';
 
 /**
  * A bar pinned just above the bottom navigation, whatever screen it is used on.
@@ -15,13 +15,14 @@ import { createPortal } from 'react-dom';
  * phones makes it taller than its nominal 4rem.
  */
 export default function FixedBottomBar({ children }: { children: ReactNode }) {
-  return createPortal(
+  return (
+    <Portal>
     <div
       className="fixed left-0 right-0 max-w-lg mx-auto px-4 pb-2 z-[60] pointer-events-none"
       style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
     >
       <div className="pointer-events-auto">{children}</div>
-    </div>,
-    document.body,
+    </div>
+    </Portal>
   );
 }

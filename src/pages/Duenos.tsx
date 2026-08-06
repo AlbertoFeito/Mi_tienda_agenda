@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import Portal from '@/components/Portal';
 import { useLiveQuery } from '@/lib/live';
 import { HandCoins, CheckCircle, MessageSquare, MessageCircle, Plus, Phone, Users, Pencil } from 'lucide-react';
 import { db } from '@/lib/db';
@@ -626,7 +626,8 @@ function OwnerPaymentForm({
 
   useBackHandler(onClose);
 
-  return createPortal(
+  return (
+    <Portal>
     <div className="fixed inset-0 z-[200] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up">
@@ -667,7 +668,7 @@ function OwnerPaymentForm({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>
+    </Portal>
   );
 }

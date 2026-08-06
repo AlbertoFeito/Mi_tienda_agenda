@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Portal from '@/components/Portal';
 import { KeyRound } from 'lucide-react';
 import PinPad from '@/components/PinPad';
 import { verifyPin, setPin } from '@/lib/auth';
@@ -84,20 +85,22 @@ export default function ChangePinModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[600] bg-gradient-to-b from-[#0F766E] to-[#134E4A] text-white flex flex-col items-center justify-center px-8" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="flex flex-col items-center">
-        <div className="w-16 h-16 rounded-2xl bg-white/15 flex items-center justify-center mb-6">
-          <KeyRound size={30} />
-        </div>
-        <h1 className="text-xl font-semibold">{titles[step].title}</h1>
-        <p className="text-sm text-white/70 mt-1 text-center max-w-xs">{titles[step].subtitle}</p>
+    <Portal>
+      <div className="fixed inset-0 z-[600] bg-gradient-to-b from-[#0F766E] to-[#134E4A] text-white flex flex-col items-center justify-center px-8" onClick={onClose}>
+        <div onClick={(e) => e.stopPropagation()} className="flex flex-col items-center">
+          <div className="w-16 h-16 rounded-2xl bg-white/15 flex items-center justify-center mb-6">
+            <KeyRound size={30} />
+          </div>
+          <h1 className="text-xl font-semibold">{titles[step].title}</h1>
+          <p className="text-sm text-white/70 mt-1 text-center max-w-xs">{titles[step].subtitle}</p>
 
-        <PinPad pin={pin} onDigit={press} onBackspace={backspace} length={PIN_LENGTH} busy={busy} />
+          <PinPad pin={pin} onDigit={press} onBackspace={backspace} length={PIN_LENGTH} busy={busy} />
 
-        <div className="h-5 mt-4">
-          {error && <p className="text-sm text-amber-200">{error}</p>}
+          <div className="h-5 mt-4">
+            {error && <p className="text-sm text-amber-200">{error}</p>}
+          </div>
         </div>
       </div>
-    </div>
+    </Portal>
   );
 }

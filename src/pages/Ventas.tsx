@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import Portal from '@/components/Portal';
 import { useLiveQuery } from '@/lib/live';
 import { Search, X, ShoppingCart, Minus, Plus, Trash2, CreditCard, Banknote, Repeat, ChevronDown, User, Package, AlertTriangle } from 'lucide-react';
 import { db } from '@/lib/db';
@@ -388,20 +389,22 @@ export default function Ventas() {
 
       {/* Barra del carrito */}
       {cartCount > 0 && (
+        <Portal>
         <button
           onClick={() => setCheckoutOpen(true)}
-          className="fixed bottom-20 left-4 right-4 bg-[#0F766E] text-white h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg z-40"
+          className="fixed bottom-20 left-4 right-4 max-w-lg mx-auto bg-[#0F766E] text-white h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg z-40"
         >
           <ShoppingCart className="w-5 h-5" />
           <span className="font-medium">{cartCount} productos</span>
           <span className="mx-2">·</span>
           <span>{formatPrice(cartTotal, 'CUP')}</span>
         </button>
+        </Portal>
       )}
 
       {/* Checkout Bottom Sheet */}
       {checkoutOpen && (
-        <>
+        <Portal>
           <div 
             className="fixed inset-0 bg-black/50 z-[100]"
             onClick={() => setCheckoutOpen(false)}
@@ -666,7 +669,7 @@ export default function Ventas() {
               </button>
             </div>
           </div>
-        </>
+        </Portal>
       )}
       {receipt && <ReceiptModal data={receipt} onClose={() => setReceipt(null)} />}
     </div>

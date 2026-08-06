@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Portal from '@/components/Portal';
 import { Download, Upload, Trash2, KeyRound, Fingerprint, ShieldCheck, ImagePlus } from 'lucide-react';
 import { pickProductImage } from '@/lib/camera';
 import ChangePinModal from '@/components/ChangePinModal';
@@ -110,244 +111,248 @@ export default function SettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[300] bg-white flex flex-col animate-slide-up">
-      <div className="h-14 bg-[#134E4A] text-white flex items-center justify-between px-4 flex-shrink-0">
-        <h2 className="text-lg font-semibold">Configuración</h2>
-      </div>
+    <Portal>
+      <div className="fixed inset-0 z-[300] bg-white flex flex-col animate-slide-up">
+        <div className="h-14 bg-[#134E4A] text-white flex items-center justify-between px-4 flex-shrink-0">
+          <h2 className="text-lg font-semibold">Configuración</h2>
+        </div>
 
-      <div className="flex border-b border-[#E2E8F0] flex-shrink-0">
-        {(['rates', 'store', 'data'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-3 text-sm font-medium transition-colors ${
-              activeTab === tab
-                ? 'text-[#0F766E] border-b-2 border-[#0F766E]'
-                : 'text-[#94A3B8]'
-            }`}
-          >
-            {tab === 'rates' ? 'Tasas' : tab === 'store' ? 'Tienda' : 'Datos'}
-          </button>
-        ))}
-      </div>
+        <div className="flex border-b border-[#E2E8F0] flex-shrink-0">
+          {(['rates', 'store', 'data'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                activeTab === tab
+                  ? 'text-[#0F766E] border-b-2 border-[#0F766E]'
+                  : 'text-[#94A3B8]'
+              }`}
+            >
+              {tab === 'rates' ? 'Tasas' : tab === 'store' ? 'Tienda' : 'Datos'}
+            </button>
+          ))}
+        </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === 'rates' && (
-          <div className="space-y-4">
-            <p className="text-sm text-[#475569]">Configure las tasas de cambio respecto al CUP</p>
-            <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-4">
-              {[
-                { label: '1 USD =', value: usdRate, setter: setUsdRate },
-                { label: '1 EUR =', value: eurRate, setter: setEurRate },
-                { label: '1 MLC =', value: mlcRate, setter: setMlcRate },
-              ].map((rate) => (
-                <div key={rate.label} className="flex items-center gap-3">
-                  <label className="text-sm font-medium text-[#475569] w-20">{rate.label}</label>
-                  <NumberField value={rate.value} onChange={rate.setter} decimals className="flex-1" />
-                  <span className="text-sm text-[#94A3B8]">CUP</span>
-                </div>
-              ))}
-              <button
-                onClick={handleSaveRates}
-                className="w-full h-12 bg-[#0F766E] text-white rounded-lg font-semibold active:scale-[0.98] transition-transform"
-              >
-                Guardar Tasas
-              </button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'store' && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-4">
-              <div className="flex flex-col items-center gap-2 pb-2">
+        <div className="flex-1 overflow-y-auto p-4">
+          {activeTab === 'rates' && (
+            <div className="space-y-4">
+              <p className="text-sm text-[#475569]">Configure las tasas de cambio respecto al CUP</p>
+              <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-4">
+                {[
+                  { label: '1 USD =', value: usdRate, setter: setUsdRate },
+                  { label: '1 EUR =', value: eurRate, setter: setEurRate },
+                  { label: '1 MLC =', value: mlcRate, setter: setMlcRate },
+                ].map((rate) => (
+                  <div key={rate.label} className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-[#475569] w-20">{rate.label}</label>
+                    <NumberField value={rate.value} onChange={rate.setter} decimals className="flex-1" />
+                    <span className="text-sm text-[#94A3B8]">CUP</span>
+                  </div>
+                ))}
                 <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const img = await pickProductImage();
-                      if (img) setLogo(img);
-                    } catch {
-                      showToast('No se pudo obtener la imagen', 'error');
-                    }
-                  }}
-                  className="w-20 h-20 rounded-2xl bg-[#F1F5F9] flex items-center justify-center overflow-hidden border-2 border-dashed border-[#CBD5E1] active:border-[#0F766E]"
+                  onClick={handleSaveRates}
+                  className="w-full h-12 bg-[#0F766E] text-white rounded-lg font-semibold active:scale-[0.98] transition-transform"
                 >
-                  {logo ? (
-                    <img src={logo} alt="Logo" className="w-full h-full object-cover" />
-                  ) : (
-                    <ImagePlus className="w-7 h-7 text-[#94A3B8]" />
-                  )}
+                  Guardar Tasas
                 </button>
-                <span className="text-xs text-[#94A3B8]">Logo de la tienda</span>
-                {logo && (
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'store' && (
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-4">
+                <div className="flex flex-col items-center gap-2 pb-2">
                   <button
                     type="button"
-                    onClick={() => setLogo(undefined)}
-                    className="text-xs font-medium text-[#DC2626] active:opacity-70"
+                    onClick={async () => {
+                      try {
+                        const img = await pickProductImage();
+                        if (img) setLogo(img);
+                      } catch {
+                        showToast('No se pudo obtener la imagen', 'error');
+                      }
+                    }}
+                    className="w-20 h-20 rounded-2xl bg-[#F1F5F9] flex items-center justify-center overflow-hidden border-2 border-dashed border-[#CBD5E1] active:border-[#0F766E]"
                   >
-                    Quitar
+                    {logo ? (
+                      <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImagePlus className="w-7 h-7 text-[#94A3B8]" />
+                    )}
+                  </button>
+                  <span className="text-xs text-[#94A3B8]">Logo de la tienda</span>
+                  {logo && (
+                    <button
+                      type="button"
+                      onClick={() => setLogo(undefined)}
+                      className="text-xs font-medium text-[#DC2626] active:opacity-70"
+                    >
+                      Quitar
+                    </button>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-[#475569] block mb-1">Nombre de la tienda</label>
+                  <input
+                    type="text"
+                    value={storeName}
+                    onChange={(e) => setStoreName(e.target.value)}
+                    className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[#475569] block mb-1">Dirección</label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[#475569] block mb-1">Teléfono</label>
+                  <PhoneField value={phone} onChange={setPhone} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[#475569] block mb-1">Moneda de referencia</label>
+                  <select
+                    value={primaryCurrency}
+                    onChange={(e) => setPrimaryCurrency(e.target.value as Currency)}
+                    className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none bg-white"
+                  >
+                    <option value="CUP">CUP</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="MLC">MLC</option>
+                  </select>
+                  <p className="text-xs text-[#94A3B8] mt-1">
+                    Las cuentas se llevan siempre en CUP. Si eliges otra, se añade la
+                    equivalencia aproximada al cambio de hoy debajo de las cifras.
+                  </p>
+                </div>
+                <button
+                  onClick={handleSaveStore}
+                  className="w-full h-12 bg-[#0F766E] text-white rounded-lg font-semibold active:scale-[0.98] transition-transform"
+                >
+                  Guardar Datos
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'data' && (
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3">
+                <p className="text-sm font-medium text-[#475569]">Seguridad</p>
+                <button
+                  onClick={() => setShowChangePin(true)}
+                  className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-lg font-medium active:scale-[0.98] transition-transform"
+                >
+                  <KeyRound size={18} />
+                  Cambiar PIN
+                </button>
+
+                {biometricSupported && (
+                  <button
+                    onClick={toggleBiometric}
+                    className="w-full h-12 flex items-center justify-between px-3 border border-[#E2E8F0] rounded-lg font-medium text-[#475569] active:scale-[0.98] transition-transform"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Fingerprint size={18} className="text-[#0F766E]" />
+                      Desbloqueo por huella
+                    </span>
+                    <span
+                      className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                        settings?.biometricEnabled ? 'bg-[#D1FAE5] text-[#059669]' : 'bg-[#F1F5F9] text-[#94A3B8]'
+                      }`}
+                    >
+                      {settings?.biometricEnabled ? 'Activado' : 'Desactivado'}
+                    </span>
                   </button>
                 )}
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-[#475569] block mb-1">Nombre de la tienda</label>
-                <input
-                  type="text"
-                  value={storeName}
-                  onChange={(e) => setStoreName(e.target.value)}
-                  className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-[#475569] block mb-1">Dirección</label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-[#475569] block mb-1">Teléfono</label>
-                <PhoneField value={phone} onChange={setPhone} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-[#475569] block mb-1">Moneda de referencia</label>
-                <select
-                  value={primaryCurrency}
-                  onChange={(e) => setPrimaryCurrency(e.target.value as Currency)}
-                  className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none bg-white"
-                >
-                  <option value="CUP">CUP</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="MLC">MLC</option>
-                </select>
-                <p className="text-xs text-[#94A3B8] mt-1">
-                  Las cuentas se llevan siempre en CUP. Si eliges otra, se añade la
-                  equivalencia aproximada al cambio de hoy debajo de las cifras.
-                </p>
-              </div>
-              <button
-                onClick={handleSaveStore}
-                className="w-full h-12 bg-[#0F766E] text-white rounded-lg font-semibold active:scale-[0.98] transition-transform"
-              >
-                Guardar Datos
-              </button>
-            </div>
-          </div>
-        )}
+              <LicenseSection />
 
-        {activeTab === 'data' && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3">
-              <p className="text-sm font-medium text-[#475569]">Seguridad</p>
-              <button
-                onClick={() => setShowChangePin(true)}
-                className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-lg font-medium active:scale-[0.98] transition-transform"
-              >
-                <KeyRound size={18} />
-                Cambiar PIN
-              </button>
-
-              {biometricSupported && (
+              <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3">
+                <p className="text-sm font-medium text-[#475569]">Copia de seguridad</p>
                 <button
-                  onClick={toggleBiometric}
-                  className="w-full h-12 flex items-center justify-between px-3 border border-[#E2E8F0] rounded-lg font-medium text-[#475569] active:scale-[0.98] transition-transform"
+                  onClick={handleExport}
+                  className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-lg font-medium active:scale-[0.98] transition-transform"
                 >
-                  <span className="flex items-center gap-2">
-                    <Fingerprint size={18} className="text-[#0F766E]" />
-                    Desbloqueo por huella
-                  </span>
-                  <span
-                    className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      settings?.biometricEnabled ? 'bg-[#D1FAE5] text-[#059669]' : 'bg-[#F1F5F9] text-[#94A3B8]'
-                    }`}
-                  >
-                    {settings?.biometricEnabled ? 'Activado' : 'Desactivado'}
-                  </span>
+                  <Download size={18} />
+                  Crear y compartir copia
                 </button>
-              )}
+
+                <label className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#64748B] text-[#64748B] rounded-lg font-medium active:scale-[0.98] transition-transform cursor-pointer">
+                  <Upload size={18} />
+                  Restaurar copia
+                  <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+                </label>
+
+                <p className="text-xs text-[#94A3B8] text-center">
+                  {settings?.lastBackupAt
+                    ? `Última copia: ${new Date(settings.lastBackupAt).toLocaleString('es-CU')}`
+                    : 'Aún no has creado una copia. Se crea una automática cada día.'}
+                </p>
+
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#DC2626] text-[#DC2626] rounded-lg font-medium active:scale-[0.98] transition-transform"
+                >
+                  <Trash2 size={18} />
+                  Borrar Todos los Datos
+                </button>
+              </div>
+
+              <div className="text-center pt-4">
+                <p className="text-xs text-[#94A3B8]">NayadeStore v3.9</p>
+                <p className="text-xs text-[#94A3B8]">Gestión comercial offline</p>
+              </div>
             </div>
-
-            <LicenseSection />
-
-            <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3">
-              <p className="text-sm font-medium text-[#475569]">Copia de seguridad</p>
-              <button
-                onClick={handleExport}
-                className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#0F766E] text-[#0F766E] rounded-lg font-medium active:scale-[0.98] transition-transform"
-              >
-                <Download size={18} />
-                Crear y compartir copia
-              </button>
-
-              <label className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#64748B] text-[#64748B] rounded-lg font-medium active:scale-[0.98] transition-transform cursor-pointer">
-                <Upload size={18} />
-                Restaurar copia
-                <input type="file" accept=".json" onChange={handleImport} className="hidden" />
-              </label>
-
-              <p className="text-xs text-[#94A3B8] text-center">
-                {settings?.lastBackupAt
-                  ? `Última copia: ${new Date(settings.lastBackupAt).toLocaleString('es-CU')}`
-                  : 'Aún no has creado una copia. Se crea una automática cada día.'}
-              </p>
-
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#DC2626] text-[#DC2626] rounded-lg font-medium active:scale-[0.98] transition-transform"
-              >
-                <Trash2 size={18} />
-                Borrar Todos los Datos
-              </button>
-            </div>
-
-            <div className="text-center pt-4">
-              <p className="text-xs text-[#94A3B8]">NayadeStore v3.8</p>
-              <p className="text-xs text-[#94A3B8]">Gestión comercial offline</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/40 z-[400] flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm animate-scale-in">
-            <h3 className="text-lg font-semibold text-[#0F172A] mb-2">Eliminar todos los datos</h3>
-            <p className="text-sm text-[#475569] mb-4">
-              Esta acción no se puede deshacer. Escribe ELIMINAR para confirmar.
-            </p>
-            <input
-              type="text"
-              value={deleteConfirm}
-              onChange={(e) => setDeleteConfirm(e.target.value)}
-              placeholder="Escribe ELIMINAR"
-              className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/10 outline-none mb-4"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setShowDeleteModal(false); setDeleteConfirm(''); }}
-                className="flex-1 h-12 border border-[#E2E8F0] rounded-lg font-medium text-[#475569]"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleClear}
-                disabled={deleteConfirm !== 'ELIMINAR'}
-                className="flex-1 h-12 bg-[#DC2626] text-white rounded-lg font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
+          )}
         </div>
-      )}
 
-      {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
-    </div>
+        {showDeleteModal && (
+          <Portal>
+          <div className="fixed inset-0 bg-black/40 z-[400] flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl p-6 w-full max-w-sm animate-scale-in">
+              <h3 className="text-lg font-semibold text-[#0F172A] mb-2">Eliminar todos los datos</h3>
+              <p className="text-sm text-[#475569] mb-4">
+                Esta acción no se puede deshacer. Escribe ELIMINAR para confirmar.
+              </p>
+              <input
+                type="text"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder="Escribe ELIMINAR"
+                className="w-full h-12 px-3 rounded-lg border border-[#E2E8F0] text-base focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/10 outline-none mb-4"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowDeleteModal(false); setDeleteConfirm(''); }}
+                  className="flex-1 h-12 border border-[#E2E8F0] rounded-lg font-medium text-[#475569]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleClear}
+                  disabled={deleteConfirm !== 'ELIMINAR'}
+                  className="flex-1 h-12 bg-[#DC2626] text-white rounded-lg font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+          </Portal>
+        )}
+
+        {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
+      </div>
+    </Portal>
   );
 }
 

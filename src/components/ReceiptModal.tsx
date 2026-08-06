@@ -1,4 +1,5 @@
 import { CheckCircle, Share2, MessageCircle, MessageSquare } from 'lucide-react';
+import Portal from '@/components/Portal';
 import { Capacitor } from '@capacitor/core';
 import { buildReceiptText, type ReceiptData } from '@/lib/receipt';
 import { openSms, openWhatsApp } from '@/lib/messaging';
@@ -39,59 +40,61 @@ export default function ReceiptModal({ data, onClose }: { data: ReceiptData; onC
   };
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up max-h-[85vh] flex flex-col">
-        <div className="flex flex-col items-center pt-1 pb-3">
-          {/* The shared text is plain SMS/WhatsApp and carries no image, so the
-              logo is here, where the sale is confirmed on screen. */}
-          {settings?.logo ? (
-            <img
-              src={settings.logo}
-              alt=""
-              className="w-12 h-12 rounded-xl object-cover mb-2 bg-[#F1F5F9]"
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-[#D1FAE5] flex items-center justify-center mb-2">
-              <CheckCircle size={26} className="text-[#059669]" />
-            </div>
-          )}
-          <h3 className="text-lg font-semibold">Venta registrada</h3>
-          <p className="text-xs text-[#94A3B8]">Recibo {data.receiptNumber}</p>
-        </div>
+    <Portal>
+      <div className="fixed inset-0 z-[300] flex items-end justify-center">
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up max-h-[85vh] flex flex-col">
+          <div className="flex flex-col items-center pt-1 pb-3">
+            {/* The shared text is plain SMS/WhatsApp and carries no image, so the
+                logo is here, where the sale is confirmed on screen. */}
+            {settings?.logo ? (
+              <img
+                src={settings.logo}
+                alt=""
+                className="w-12 h-12 rounded-xl object-cover mb-2 bg-[#F1F5F9]"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-[#D1FAE5] flex items-center justify-center mb-2">
+                <CheckCircle size={26} className="text-[#059669]" />
+              </div>
+            )}
+            <h3 className="text-lg font-semibold">Venta registrada</h3>
+            <p className="text-xs text-[#94A3B8]">Recibo {data.receiptNumber}</p>
+          </div>
 
-        <pre className="flex-1 overflow-y-auto whitespace-pre-wrap break-words bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 text-xs text-[#334155] font-mono">
-          {text}
-        </pre>
+          <pre className="flex-1 overflow-y-auto whitespace-pre-wrap break-words bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 text-xs text-[#334155] font-mono">
+            {text}
+          </pre>
 
-        <div className="mt-4 space-y-2">
-          <button
-            onClick={share}
-            className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-[#0F766E] text-white font-medium active:scale-[0.98] transition-transform"
-          >
-            <Share2 size={18} />
-            Compartir recibo
-          </button>
-          {phone && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => sendTo('whatsapp')}
-                className="flex-1 h-11 flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] text-white text-sm font-medium active:scale-[0.98] transition-transform"
-              >
-                <MessageCircle size={16} />
-                WhatsApp
-              </button>
-              <button
-                onClick={() => sendTo('sms')}
-                className="flex-1 h-11 flex items-center justify-center gap-1.5 rounded-xl border border-[#0F766E] text-[#0F766E] text-sm font-medium active:scale-[0.98] transition-transform"
-              >
-                <MessageSquare size={16} />
-                SMS
-              </button>
-            </div>
-          )}
+          <div className="mt-4 space-y-2">
+            <button
+              onClick={share}
+              className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-[#0F766E] text-white font-medium active:scale-[0.98] transition-transform"
+            >
+              <Share2 size={18} />
+              Compartir recibo
+            </button>
+            {phone && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => sendTo('whatsapp')}
+                  className="flex-1 h-11 flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] text-white text-sm font-medium active:scale-[0.98] transition-transform"
+                >
+                  <MessageCircle size={16} />
+                  WhatsApp
+                </button>
+                <button
+                  onClick={() => sendTo('sms')}
+                  className="flex-1 h-11 flex items-center justify-center gap-1.5 rounded-xl border border-[#0F766E] text-[#0F766E] text-sm font-medium active:scale-[0.98] transition-transform"
+                >
+                  <MessageSquare size={16} />
+                  SMS
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </Portal>
   );
 }
