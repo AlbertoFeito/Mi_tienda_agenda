@@ -122,7 +122,7 @@ export default function Productos() {
               <div
                 key={product.id}
                 className="w-full bg-white rounded-xl p-4 shadow-sm flex items-start gap-3"
-                style={{ animationDelay: `${i * 30}ms` }}
+                style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
               >
                 {product.image ? (
                   <img

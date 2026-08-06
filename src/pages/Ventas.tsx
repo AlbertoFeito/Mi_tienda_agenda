@@ -359,7 +359,7 @@ export default function Ventas() {
                     ? 'bg-gray-100 opacity-60 cursor-not-allowed' 
                     : 'bg-white active:bg-[#F1F5F9]'
                 }`}
-                style={{ animationDelay: `${i * 30}ms` }}
+                style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
               >
                 {product.image ? (
                   <img src={product.image} alt={product.name} className="w-14 h-14 rounded-lg object-cover" />

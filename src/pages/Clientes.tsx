@@ -109,6 +109,15 @@ export default function Clientes() {
     setView('detail');
   };
 
+  const enterSelecting = () => {
+    // "Activos" only lists customers who owe money, and those are exactly the
+    // ones that must not be deleted — so starting there shows a screen where
+    // nothing can be marked. Selecting is for cleaning up, so go where the
+    // cleanable ones are.
+    setActiveTab('all');
+    setSelecting(true);
+  };
+
   const leaveSelecting = () => {
     setSelecting(false);
     setMarked(new Set());
@@ -122,6 +131,27 @@ export default function Clientes() {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  };
+
+  /**
+   * Mark or unmark everything on screen — what the search and the tab are
+   * showing, not the whole book. Cleaning up three hundred imported contacts
+   * one tap at a time is not something anyone would finish.
+   */
+  const markAllVisible = (on: boolean) => {
+    setMarked((prev) => {
+      const next = new Set(prev);
+      for (const cd of filteredCustomers) {
+        const id = cd.customer.id;
+        if (id === undefined) continue;
+        if (on) {
+          if (cd.remaining === 0) next.add(id);
+        } else {
+          next.delete(id);
+        }
+      }
       return next;
     });
   };
@@ -180,7 +210,7 @@ export default function Clientes() {
           <div className="flex items-center gap-2">
             {(customers?.length ?? 0) > 0 && (
               <button
-                onClick={() => setSelecting(true)}
+                onClick={enterSelecting}
                 className="h-10 px-3 flex items-center gap-1.5 border border-[#E2E8F0] text-[#475569] rounded-full text-sm font-medium active:scale-95 transition-transform"
               >
                 Seleccionar
@@ -240,9 +270,25 @@ export default function Clientes() {
       </div>
 
       {selecting && (
-        <p className="text-xs text-[#94A3B8] px-4 mb-2">
-          Marca los que quieras borrar. Los que deben dinero no se pueden marcar.
-        </p>
+        <div className="px-4 mb-2 space-y-2">
+          <p className="text-xs text-[#94A3B8]">
+            Toca los que quieras borrar. Los que deben dinero no se pueden marcar.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => markAllVisible(true)}
+              className="flex-1 h-9 text-sm font-medium text-[#DC2626] border border-[#DC2626] rounded-lg active:scale-95 transition-transform"
+            >
+              Marcar todos
+            </button>
+            <button
+              onClick={() => markAllVisible(false)}
+              className="flex-1 h-9 text-sm font-medium text-[#475569] border border-[#E2E8F0] rounded-lg active:scale-95 transition-transform"
+            >
+              Ninguno
+            </button>
+          </div>
+        </div>
       )}
 
       {/* List */}
@@ -272,7 +318,7 @@ export default function Clientes() {
               className={`w-full bg-white rounded-xl p-4 shadow-sm text-left active:scale-[0.98] active:bg-[#F1F5F9] transition-all animate-fade-in-up ${
                 isMarked ? 'ring-2 ring-[#DC2626]' : ''
               } ${selecting && hasDebt ? 'opacity-50' : ''}`}
-              style={{ animationDelay: `${i * 60}ms`, opacity: 0 }}
+              style={{ animationDelay: `${Math.min(i, 8) * 60}ms`, opacity: 0 }}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -330,14 +376,20 @@ export default function Clientes() {
         )}
       </div>
 
-      {selecting && marked.size > 0 && (
-        <div className="fixed bottom-16 left-0 right-0 max-w-lg mx-auto px-4 pb-2 z-40">
+      {selecting && (
+        /* Above the bottom bar, and clear of the gesture inset that makes it
+           taller than its 4rem on some phones. */
+        <div
+          className="fixed left-0 right-0 max-w-lg mx-auto px-4 pb-2 z-[60]"
+          style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
+        >
           <button
             onClick={() => setConfirmBulk(true)}
-            className="w-full h-14 flex items-center justify-center gap-2 bg-[#DC2626] text-white rounded-xl font-semibold text-base shadow-lg active:scale-[0.98] transition-transform"
+            disabled={marked.size === 0}
+            className="w-full h-14 flex items-center justify-center gap-2 bg-[#DC2626] text-white rounded-xl font-semibold text-base shadow-lg active:scale-[0.98] transition-transform disabled:bg-[#94A3B8]"
           >
             <Trash2 size={18} />
-            Eliminar {marked.size} cliente(s)
+            {marked.size === 0 ? 'Marca los que quieras borrar' : `Eliminar ${marked.size} cliente(s)`}
           </button>
         </div>
       )}
