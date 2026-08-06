@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLiveQuery } from '@/lib/live';
 import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle, MessageSquare, MessageCircle, Contact, ImagePlus, Upload, Trash2 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import FixedBottomBar from '@/components/FixedBottomBar';
 import { db } from '@/lib/db';
 import { pickProductImage } from '@/lib/camera';
 import { parseCustomers, planImport, type ImportPlan } from '@/lib/csv';
@@ -377,12 +379,7 @@ export default function Clientes() {
       </div>
 
       {selecting && (
-        /* Above the bottom bar, and clear of the gesture inset that makes it
-           taller than its 4rem on some phones. */
-        <div
-          className="fixed left-0 right-0 max-w-lg mx-auto px-4 pb-2 z-[60]"
-          style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
-        >
+        <FixedBottomBar>
           <button
             onClick={() => setConfirmBulk(true)}
             disabled={marked.size === 0}
@@ -391,7 +388,7 @@ export default function Clientes() {
             <Trash2 size={18} />
             {marked.size === 0 ? 'Marca los que quieras borrar' : `Eliminar ${marked.size} cliente(s)`}
           </button>
-        </div>
+        </FixedBottomBar>
       )}
 
       {confirmBulk && (
@@ -1148,7 +1145,7 @@ function PaymentForm({ installment, onClose, onPay }: {
     if (amount === 0) setAmount(maxAmount);
   }, []);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up">
@@ -1190,6 +1187,7 @@ function PaymentForm({ installment, onClose, onPay }: {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

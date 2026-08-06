@@ -1,4 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useBackHandler } from '@/lib/backHandler';
 
 /**
@@ -7,6 +8,11 @@ import { useBackHandler } from '@/lib/backHandler';
  * Replaces the browser's `confirm()`, which inside the WebView shows a system
  * dialog stamped with the local origin — fine while developing, out of place
  * in an app someone paid for.
+ *
+ * Rendered through a portal on purpose. Several screens animate themselves in
+ * with a transform, and a transform makes that element the anchor for any
+ * `position: fixed` inside it — so a dialog written to cover the screen would
+ * instead cover the page content, ending up wherever that happens to reach.
  */
 export default function ConfirmDialog({
   title,
@@ -27,7 +33,7 @@ export default function ConfirmDialog({
 }) {
   useBackHandler(onCancel);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[450] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
       <div className="relative bg-white rounded-2xl p-5 w-full max-w-sm animate-scale-in">
@@ -60,6 +66,7 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
