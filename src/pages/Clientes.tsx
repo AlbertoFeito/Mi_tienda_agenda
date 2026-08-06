@@ -1,9 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useLiveQuery } from '@/lib/live';
-import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle, MessageSquare, MessageCircle, Contact, ImagePlus, Upload } from 'lucide-react';
+import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle, MessageSquare, MessageCircle, Contact, ImagePlus, Upload, Trash2 } from 'lucide-react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { db } from '@/lib/db';
 import { pickProductImage } from '@/lib/camera';
 import { parseCustomers, planImport, type ImportPlan } from '@/lib/csv';
+import { looksLikeVCard, parseVCards } from '@/lib/vcard';
+import { batch } from '@/lib/live';
 import { useBackHandler } from '@/lib/backHandler';
 import NumberField from '@/components/NumberField';
 import PhoneField, { isValidCubanPhone, normalizeCubanPhone } from '@/components/PhoneField';
@@ -15,13 +18,30 @@ import type { Customer, Installment, InstallmentPayment, PaymentMethod } from '@
 type ViewState = 'list' | 'form' | 'detail' | 'import';
 type CustomerTab = 'active' | 'all' | 'paid';
 
+/**
+ * Whether this customer still owes money.
+ *
+ * A customer who does cannot be deleted: their card is the only place that
+ * debt is shown and collected, so deleting them would leave the money nowhere.
+ * Past sales are a different matter — those keep a copy of the name and stay
+ * whole either way.
+ */
+function owesMoney(installments: Installment[], customerId?: number): boolean {
+  return installments.some(
+    (i) => i.customerId === customerId && i.status === 'active' && i.remainingAmount > 0,
+  );
+}
+
 export default function Clientes() {
-  const { formatPrice } = useApp();
+  const { formatPrice, showToast } = useApp();
   const [view, setView] = useState<ViewState>('list');
   const [activeTab, setActiveTab] = useState<CustomerTab>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selecting, setSelecting] = useState(false);
+  const [marked, setMarked] = useState<Set<number>>(new Set());
+  const [confirmBulk, setConfirmBulk] = useState(false);
 
   const customers = useLiveQuery(() => db.customers.toArray(), []);
   const installments = useLiveQuery(() => db.installments.toArray(), []);
@@ -89,6 +109,41 @@ export default function Clientes() {
     setView('detail');
   };
 
+  const leaveSelecting = () => {
+    setSelecting(false);
+    setMarked(new Set());
+  };
+
+  // Back should drop out of selecting before it leaves the screen.
+  useBackHandler(leaveSelecting, selecting);
+
+  const toggleMarked = (id: number) => {
+    setMarked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    setConfirmBulk(false);
+    const ids = [...marked];
+    try {
+      // One refresh at the end, not one per customer.
+      await batch(async () => {
+        for (const id of ids) await db.customers.delete(id);
+      });
+      showToast(
+        ids.length === 1 ? 'Cliente eliminado' : `${ids.length} clientes eliminados`,
+        'success',
+      );
+      leaveSelecting();
+    } catch {
+      showToast('Error al eliminar', 'error');
+    }
+  };
+
   if (view === 'form') {
     return <CustomerForm customer={editingCustomer} onBack={() => setView('list')} onSave={() => { setView('list'); setEditingCustomer(null); }} />;
   }
@@ -114,21 +169,38 @@ export default function Clientes() {
       {/* Header con botón de agregar */}
       <div className="flex items-center justify-between mb-3 px-4 pt-4">
         <h2 className="text-xl font-bold">Clientes</h2>
-        <div className="flex items-center gap-2">
+        {selecting ? (
           <button
-            onClick={() => setView('import')}
-            className="h-10 px-3 flex items-center gap-1.5 border border-[#0F766E] text-[#0F766E] rounded-full text-sm font-medium active:scale-95 transition-transform"
+            onClick={leaveSelecting}
+            className="h-10 px-3 flex items-center gap-1.5 border border-[#E2E8F0] text-[#475569] rounded-full text-sm font-medium active:scale-95 transition-transform"
           >
-            <Upload size={16} />
-            Importar
+            Cancelar
           </button>
-          <button
-            onClick={() => openForm()}
-            className="w-10 h-10 bg-[#0F766E] text-white rounded-full shadow-sm flex items-center justify-center active:scale-90 transition-transform"
-          >
-            <Plus size={20} />
-          </button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            {(customers?.length ?? 0) > 0 && (
+              <button
+                onClick={() => setSelecting(true)}
+                className="h-10 px-3 flex items-center gap-1.5 border border-[#E2E8F0] text-[#475569] rounded-full text-sm font-medium active:scale-95 transition-transform"
+              >
+                Seleccionar
+              </button>
+            )}
+            <button
+              onClick={() => setView('import')}
+              className="h-10 px-3 flex items-center gap-1.5 border border-[#0F766E] text-[#0F766E] rounded-full text-sm font-medium active:scale-95 transition-transform"
+            >
+              <Upload size={16} />
+              Importar
+            </button>
+            <button
+              onClick={() => openForm()}
+              className="w-10 h-10 bg-[#0F766E] text-white rounded-full shadow-sm flex items-center justify-center active:scale-90 transition-transform"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Search */}
@@ -167,23 +239,52 @@ export default function Clientes() {
         ))}
       </div>
 
+      {selecting && (
+        <p className="text-xs text-[#94A3B8] px-4 mb-2">
+          Marca los que quieras borrar. Los que deben dinero no se pueden marcar.
+        </p>
+      )}
+
       {/* List */}
-      <div className="space-y-2 pb-20 px-4">
+      <div className={`space-y-2 px-4 ${selecting ? 'pb-28' : 'pb-20'}`}>
         {filteredCustomers.length === 0 ? (
           <div className="text-center py-12">
             <User size={40} className="mx-auto text-[#94A3B8] mb-2" />
             <p className="text-sm text-[#475569]">No hay clientes</p>
           </div>
         ) : (
-          filteredCustomers.map((cd, i) => (
+          filteredCustomers.map((cd, i) => {
+            const id = cd.customer.id;
+            const hasDebt = cd.remaining > 0;
+            const isMarked = id !== undefined && marked.has(id);
+
+            return (
             <button
               key={cd.customer.id}
-              onClick={() => openDetail(cd.customer)}
-              className="w-full bg-white rounded-xl p-4 shadow-sm text-left active:scale-[0.98] active:bg-[#F1F5F9] transition-all animate-fade-in-up"
+              onClick={() => {
+                if (!selecting) { openDetail(cd.customer); return; }
+                if (hasDebt || id === undefined) {
+                  showToast('Este cliente todavía debe: no se puede borrar', 'warning');
+                  return;
+                }
+                toggleMarked(id);
+              }}
+              className={`w-full bg-white rounded-xl p-4 shadow-sm text-left active:scale-[0.98] active:bg-[#F1F5F9] transition-all animate-fade-in-up ${
+                isMarked ? 'ring-2 ring-[#DC2626]' : ''
+              } ${selecting && hasDebt ? 'opacity-50' : ''}`}
               style={{ animationDelay: `${i * 60}ms`, opacity: 0 }}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
+                  {selecting && (
+                    <span
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                        isMarked ? 'bg-[#DC2626] border-[#DC2626]' : 'border-[#CBD5E1]'
+                      }`}
+                    >
+                      {isMarked && <CheckCircle size={14} className="text-white" />}
+                    </span>
+                  )}
                   {cd.customer.avatar ? (
                     <img
                       src={cd.customer.avatar}
@@ -224,9 +325,31 @@ export default function Clientes() {
                 <p className="text-xs text-[#059669]">Cliente al día</p>
               )}
             </button>
-          ))
+            );
+          })
         )}
       </div>
+
+      {selecting && marked.size > 0 && (
+        <div className="fixed bottom-16 left-0 right-0 max-w-lg mx-auto px-4 pb-2 z-40">
+          <button
+            onClick={() => setConfirmBulk(true)}
+            className="w-full h-14 flex items-center justify-center gap-2 bg-[#DC2626] text-white rounded-xl font-semibold text-base shadow-lg active:scale-[0.98] transition-transform"
+          >
+            <Trash2 size={18} />
+            Eliminar {marked.size} cliente(s)
+          </button>
+        </div>
+      )}
+
+      {confirmBulk && (
+        <ConfirmDialog
+          title={`¿Eliminar ${marked.size} cliente(s)?`}
+          message="Se borran de tu lista de clientes. Las ventas que les hiciste no se tocan: guardan su nombre."
+          onConfirm={handleBulkDelete}
+          onCancel={() => setConfirmBulk(false)}
+        />
+      )}
 
       {/* FAB ELIMINADO - ahora está en el header */}
     </div>
@@ -234,18 +357,21 @@ export default function Clientes() {
 }
 
 /**
- * Bringing a customer list in from a CSV.
+ * Bringing a customer list in from the phone's contacts.
  *
- * Nothing is written until the file has been read and the user has seen what it
- * would do — how many are new, how many are already in the book, how many rows
- * carried no name. An import that quietly doubled every customer would be worse
- * than typing them in by hand.
+ * Two things had to be true for this to be useful. It has to read what the
+ * phone actually exports — a `.vcf`, not a CSV — and it has to let you pick.
+ * A contact list is not a customer list: it has the fire brigade, the pizza
+ * place and your mother in it. So nothing is written until the file has been
+ * read and every name has been seen and ticked.
  */
 function ImportCustomers({ existing, onBack }: { existing: Customer[]; onBack: () => void }) {
   const { showToast } = useApp();
   const [plan, setPlan] = useState<ImportPlan | null>(null);
   const [columns, setColumns] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
+  const [chosen, setChosen] = useState<Set<number>>(new Set());
+  const [query, setQuery] = useState('');
   const [saving, setSaving] = useState(false);
 
   useBackHandler(onBack);
@@ -255,34 +381,73 @@ function ImportCustomers({ existing, onBack }: { existing: Customer[]; onBack: (
     e.target.value = '';
     if (!file) return;
     try {
-      const parsed = parseCustomers(await file.text());
-      if (!parsed.customers.length && !parsed.skipped) {
-        showToast('El archivo no tiene filas que leer', 'error');
+      const text = await file.text();
+      // The format is decided by what is inside, not by the file's name.
+      const parsed = looksLikeVCard(text) ? parseVCards(text) : parseCustomers(text);
+      if (!parsed.customers.length && !parsed.skipped && !parsed.skippedPhone) {
+        showToast('Ese archivo no parece una lista de contactos', 'error');
         return;
       }
+      const next = planImport(parsed, existing);
       setFileName(file.name);
       setColumns(parsed.columns);
-      setPlan(planImport(parsed, existing));
+      setPlan(next);
+      setChosen(new Set(next.toAdd.map((_, i) => i)));
+      setQuery('');
     } catch {
       showToast('No se pudo leer el archivo', 'error');
     }
   };
 
-  const handleConfirm = async () => {
-    if (!plan || saving) return;
-    setSaving(true);
-    try {
-      for (const c of plan.toAdd) {
-        await db.customers.add({
-          name: c.name,
-          phone: c.phone,
-          address: c.address,
-          notes: c.notes,
-          createdAt: new Date(),
-        });
+  const visible = useMemo(() => {
+    if (!plan) return [];
+    const rows = plan.toAdd.map((c, i) => ({ c, i }));
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(({ c }) => c.name.toLowerCase().includes(q) || (c.phone ?? '').includes(q));
+  }, [plan, query]);
+
+  const toggle = (i: number) => {
+    setChosen((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  };
+
+  /** The Todos / Ninguno buttons act on what is on screen, not on the whole file. */
+  const setAllVisible = (on: boolean) => {
+    setChosen((prev) => {
+      const next = new Set(prev);
+      for (const { i } of visible) {
+        if (on) next.add(i);
+        else next.delete(i);
       }
+      return next;
+    });
+  };
+
+  const handleConfirm = async () => {
+    if (!plan || saving || chosen.size === 0) return;
+    setSaving(true);
+    const picked = plan.toAdd.filter((_, i) => chosen.has(i));
+    try {
+      // One refresh at the end instead of one per customer, or three hundred
+      // reloads would freeze the screen.
+      await batch(async () => {
+        for (const c of picked) {
+          await db.customers.add({
+            name: c.name,
+            phone: c.phone,
+            address: c.address,
+            notes: c.notes,
+            createdAt: new Date(),
+          });
+        }
+      });
       showToast(
-        plan.toAdd.length === 1 ? '1 cliente importado' : `${plan.toAdd.length} clientes importados`,
+        picked.length === 1 ? '1 cliente importado' : `${picked.length} clientes importados`,
         'success',
       );
       onBack();
@@ -292,102 +457,160 @@ function ImportCustomers({ existing, onBack }: { existing: Customer[]; onBack: (
     }
   };
 
-  return (
-    <div className="animate-fade-in-up">
-      <div className="flex items-center gap-2 mb-4 px-4 pt-4">
-        <h2 className="text-lg font-semibold">Importar clientes</h2>
+  if (!plan) {
+    return (
+      <div className="animate-fade-in-up">
+        <div className="flex items-center gap-2 mb-4 px-4 pt-4">
+          <h2 className="text-lg font-semibold">Importar clientes</h2>
+        </div>
+        <div className="space-y-4 pb-8 px-4">
+          <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-2">
+            <p className="text-sm text-[#475569]">
+              En el teléfono: abre <span className="font-semibold">Contactos</span> → Ajustes →{' '}
+              <span className="font-semibold">Exportar</span>. Te deja un archivo{' '}
+              <span className="font-semibold">.vcf</span>. Elígelo aquí.
+            </p>
+            <p className="text-sm text-[#475569]">
+              También sirve un <span className="font-semibold">.csv</span> hecho en Excel con las
+              columnas Nombre, Teléfono, Dirección y Notas.
+            </p>
+            <p className="text-xs text-[#94A3B8]">
+              Después eliges uno a uno quién entra: en la agenda del teléfono están la pizzería y
+              los Bomberos, y esos no son clientes.
+            </p>
+            <p className="text-xs text-[#94A3B8]">
+              No se borra ni se cambia nada de lo que ya tienes, y los que ya estén guardados se
+              saltan.
+            </p>
+          </div>
+
+          <label className="w-full h-14 flex items-center justify-center gap-2 bg-[#0F766E] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform cursor-pointer">
+            <Upload size={18} />
+            Elegir archivo
+            {/* Sin filtro de tipo a propósito: los selectores de Android
+                esconden el .vcf cuando se les pide .csv. */}
+            <input type="file" onChange={handleFile} className="hidden" />
+          </label>
+        </div>
       </div>
+    );
+  }
 
-      <div className="space-y-4 pb-8 px-4">
-        {!plan ? (
-          <>
-            <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-2">
-              <p className="text-sm text-[#475569]">
-                Elige un archivo <span className="font-semibold">.csv</span> con tus clientes. Sirve
-                el que exporta la agenda de Google Contacts, o uno hecho en Excel con las columnas{' '}
-                <span className="font-semibold">Nombre</span>,{' '}
-                <span className="font-semibold">Teléfono</span>,{' '}
-                <span className="font-semibold">Dirección</span> y{' '}
-                <span className="font-semibold">Notas</span>.
-              </p>
-              <p className="text-xs text-[#94A3B8]">
-                No se borra ni se cambia nada de lo que ya tienes. Los que ya estén guardados se
-                saltan, así que puedes importar el mismo archivo dos veces sin duplicar a nadie.
-              </p>
+  return (
+    <div className="flex flex-col h-full animate-fade-in-up">
+      <div className="px-4 pt-4 pb-3 bg-white border-b border-[#E2E8F0] space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold">Importar clientes</h2>
+          <p className="text-xs text-[#94A3B8] break-all">{fileName}</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle size={18} className="text-[#059669] flex-shrink-0" />
+            <span className="text-[#0F172A]">
+              <span className="font-bold">{chosen.size}</span> de {plan.toAdd.length} seleccionados
+            </span>
+          </div>
+          {plan.duplicates.length > 0 && (
+            <div className="flex items-center gap-2 text-sm">
+              <User size={18} className="text-[#94A3B8] flex-shrink-0" />
+              <span className="text-[#475569]">
+                <span className="font-bold">{plan.duplicates.length}</span> ya estaban guardados
+              </span>
             </div>
-
-            <label className="w-full h-14 flex items-center justify-center gap-2 bg-[#0F766E] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform cursor-pointer">
-              <Upload size={18} />
-              Elegir archivo .csv
-              <input type="file" accept=".csv,text/csv" onChange={handleFile} className="hidden" />
-            </label>
-          </>
-        ) : (
-          <>
-            <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3">
-              <p className="text-sm font-semibold text-[#0F172A] break-all">{fileName}</p>
-              {columns.length > 0 && (
-                <p className="text-xs text-[#94A3B8]">Columnas leídas: {columns.join(', ')}</p>
-              )}
-
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle size={18} className="text-[#059669] flex-shrink-0" />
-                <span className="text-[#0F172A]">
-                  <span className="font-bold">{plan.toAdd.length}</span> se van a agregar
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <User size={18} className="text-[#94A3B8] flex-shrink-0" />
-                <span className="text-[#475569]">
-                  <span className="font-bold">{plan.duplicates.length}</span> ya estaban guardados
-                </span>
-              </div>
-              {plan.skipped > 0 && (
-                <div className="flex items-center gap-2 text-sm">
-                  <AlertTriangle size={18} className="text-[#D97706] flex-shrink-0" />
-                  <span className="text-[#475569]">
-                    <span className="font-bold">{plan.skipped}</span> fila(s) sin nombre, no se
-                    pueden usar
-                  </span>
-                </div>
-              )}
+          )}
+          {plan.skippedPhone > 0 && (
+            <div className="flex items-start gap-2 text-sm">
+              <AlertTriangle size={18} className="text-[#D97706] flex-shrink-0 mt-0.5" />
+              <span className="text-[#475569]">
+                <span className="font-bold">{plan.skippedPhone}</span> con teléfono extranjero o
+                código corto: no entran, la app marca siempre con +53
+              </span>
             </div>
+          )}
+          {plan.skipped > 0 && (
+            <div className="flex items-center gap-2 text-sm">
+              <AlertTriangle size={18} className="text-[#D97706] flex-shrink-0" />
+              <span className="text-[#475569]">
+                <span className="font-bold">{plan.skipped}</span> sin nombre, no se pueden usar
+              </span>
+            </div>
+          )}
+          {columns.length > 0 && (
+            <p className="text-xs text-[#94A3B8]">Se leyó: {columns.join(', ')}</p>
+          )}
+        </div>
 
-            {plan.toAdd.length > 0 && (
-              <div className="bg-white rounded-xl border border-[#E2E8F0] p-4">
-                <p className="text-xs font-medium text-[#94A3B8] mb-2">Se van a agregar</p>
-                <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                  {plan.toAdd.map((c, i) => (
-                    <div key={i} className="flex items-baseline justify-between gap-2">
-                      <span className="text-sm text-[#0F172A] truncate">{c.name}</span>
-                      <span className="text-xs text-[#94A3B8] flex-shrink-0">
-                        {c.phone || 'sin teléfono'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={handleConfirm}
-              disabled={plan.toAdd.length === 0 || saving}
-              className="w-full h-14 bg-[#0F766E] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform disabled:opacity-50"
-            >
-              {plan.toAdd.length === 0
-                ? 'No hay nadie nuevo que agregar'
-                : saving
-                  ? 'Guardando...'
-                  : `Agregar ${plan.toAdd.length} cliente(s)`}
-            </button>
-            <button
-              onClick={() => { setPlan(null); setColumns([]); setFileName(''); }}
-              className="w-full h-12 border border-[#E2E8F0] text-[#475569] rounded-xl font-medium active:scale-[0.98] transition-transform"
-            >
-              Elegir otro archivo
-            </button>
+        {plan.toAdd.length > 0 && (
+          <>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por nombre o teléfono..."
+              className="w-full h-11 px-3 rounded-xl border border-[#E2E8F0] text-base focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/10 outline-none"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setAllVisible(true)}
+                className="flex-1 h-9 text-sm font-medium text-[#0F766E] border border-[#0F766E] rounded-lg active:scale-95 transition-transform"
+              >
+                Todos
+              </button>
+              <button
+                onClick={() => setAllVisible(false)}
+                className="flex-1 h-9 text-sm font-medium text-[#475569] border border-[#E2E8F0] rounded-lg active:scale-95 transition-transform"
+              >
+                Ninguno
+              </button>
+            </div>
           </>
         )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 py-2">
+        {visible.length === 0 ? (
+          <p className="text-center text-sm text-[#94A3B8] py-10">
+            {plan.toAdd.length === 0 ? 'No hay nadie nuevo en ese archivo' : 'Sin resultados'}
+          </p>
+        ) : (
+          <div className="divide-y divide-[#F1F5F9]">
+            {visible.map(({ c, i }) => (
+              <label key={i} className="flex items-center gap-3 py-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={chosen.has(i)}
+                  onChange={() => toggle(i)}
+                  className="w-5 h-5 accent-[#0F766E] flex-shrink-0"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm text-[#0F172A] truncate">{c.name}</span>
+                  <span className="block text-xs text-[#94A3B8]">{c.phone || 'sin teléfono'}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="px-4 py-3 bg-white border-t border-[#E2E8F0] space-y-2">
+        <button
+          onClick={handleConfirm}
+          disabled={chosen.size === 0 || saving}
+          className="w-full h-14 bg-[#0F766E] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform disabled:opacity-50"
+        >
+          {saving
+            ? 'Guardando...'
+            : chosen.size === 0
+              ? 'No hay nadie seleccionado'
+              : `Agregar ${chosen.size} cliente(s)`}
+        </button>
+        <button
+          onClick={() => { setPlan(null); setColumns([]); setFileName(''); setChosen(new Set()); setQuery(''); }}
+          className="w-full h-11 border border-[#E2E8F0] text-[#475569] rounded-xl font-medium active:scale-[0.98] transition-transform"
+        >
+          Elegir otro archivo
+        </button>
       </div>
     </div>
   );
@@ -565,8 +788,23 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
   const [detailTab, setDetailTab] = useState<'debts' | 'payments'>('debts');
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState<Installment | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useBackHandler(onBack);
+
+  const hasDebt = owesMoney(installments, customer.id);
+
+  const handleDelete = async () => {
+    setConfirmDelete(false);
+    if (!customer.id) return;
+    try {
+      await db.customers.delete(customer.id);
+      showToast('Cliente eliminado', 'success');
+      onBack();
+    } catch {
+      showToast('Error al eliminar', 'error');
+    }
+  };
 
   const storeName = settings?.storeName || 'NayadeStore';
 
@@ -797,12 +1035,45 @@ function CustomerDetail({ customer, installments, payments, onBack, onEdit }: {
         </div>
       )}
 
+      <div className="px-4 pt-2 pb-8">
+        <button
+          onClick={() => {
+            if (hasDebt) {
+              showToast('No se puede: este cliente todavía debe', 'warning');
+              return;
+            }
+            setConfirmDelete(true);
+          }}
+          className={`w-full h-12 flex items-center justify-center gap-2 border rounded-xl font-medium active:scale-[0.98] transition-transform ${
+            hasDebt ? 'border-[#E2E8F0] text-[#94A3B8]' : 'border-[#DC2626] text-[#DC2626]'
+          }`}
+        >
+          <Trash2 size={18} />
+          Eliminar cliente
+        </button>
+        {hasDebt && (
+          <p className="text-xs text-[#94A3B8] text-center mt-2">
+            Mientras deba no se puede borrar: esta ficha es el único sitio donde se ve y se cobra
+            esa deuda.
+          </p>
+        )}
+      </div>
+
       {/* Payment Form Modal */}
       {showPaymentForm && selectedInstallment && (
         <PaymentForm
           installment={selectedInstallment}
           onClose={() => { setShowPaymentForm(false); setSelectedInstallment(null); }}
           onPay={handlePayment}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title={`¿Eliminar a ${customer.name}?`}
+          message="Se borra de tu lista de clientes. Las ventas que le hiciste no se tocan: guardan su nombre."
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(false)}
         />
       )}
     </div>

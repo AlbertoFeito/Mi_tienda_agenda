@@ -79,6 +79,20 @@ describe('parseCustomers', () => {
     expect(customers.map((c) => c.phone)).toEqual(['55512345', '55598765', '55512345']);
   });
 
+  it('leaves out a row whose number is not Cuban, and says so', () => {
+    const { customers, skippedPhone } = parseCustomers(
+      'nombre,telefono\nAna,55512345\nPrima de Miami,+15550190123',
+    );
+    expect(customers.map((c) => c.name)).toEqual(['Ana']);
+    expect(skippedPhone).toBe(1);
+  });
+
+  it('keeps a row with no phone at all', () => {
+    const { customers, skippedPhone } = parseCustomers('nombre,telefono\nAna,');
+    expect(customers).toHaveLength(1);
+    expect(skippedPhone).toBe(0);
+  });
+
   it('counts the rows with no name instead of inventing one', () => {
     const { customers, skipped } = parseCustomers('nombre,telefono\nAna,55512345\n,55598765');
     expect(customers).toHaveLength(1);
@@ -101,6 +115,11 @@ describe('parseCustomers', () => {
 
   it('survives an empty file', () => {
     expect(parseCustomers('')).toEqual({ customers: [], skipped: 0, columns: [] });
+  });
+
+  it('normalizes the phone rather than storing what was typed', () => {
+    const { customers } = parseCustomers('nombre,telefono\nAna,+53 5551 2345');
+    expect(customers[0].phone).toBe('55512345');
   });
 });
 

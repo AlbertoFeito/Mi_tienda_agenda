@@ -1,4 +1,4 @@
-import { normalizeCubanPhone } from '@/components/PhoneField';
+import { cubanPhoneOrNull, normalizeCubanPhone } from '@/components/PhoneField';
 
 /**
  * Reading a customer list out of a CSV.
@@ -21,6 +21,12 @@ export interface ParseResult {
   customers: ParsedCustomer[];
   /** Rows that carried no usable name. */
   skipped: number;
+  /**
+   * Rows dropped because their only number was not a Cuban one — a foreign
+   * line, or a short code. The whole app dials with +53 in front, so keeping
+   * those would give a customer a number that cannot be called.
+   */
+  skippedPhone?: number;
   /** Column headings that were recognised, for showing back to the user. */
   columns: string[];
 }
@@ -174,6 +180,7 @@ export function parseCustomers(text: string): ParseResult {
 
   const customers: ParsedCustomer[] = [];
   let skipped = 0;
+  let skippedPhone = 0;
 
   for (const row of dataRows) {
     const pick = (field: keyof ParsedCustomer, fallbackIndex?: number): string => {
@@ -199,17 +206,26 @@ export function parseCustomers(text: string): ParseResult {
       continue;
     }
 
-    const phone = normalizeCubanPhone(headerless ? pick('phone', 1) : pick('phone'));
+    const rawPhone = headerless ? pick('phone', 1) : pick('phone');
+    const phone = cubanPhoneOrNull(rawPhone);
+
+    // A number that is not Cuban cannot be dialled by this app, which always
+    // puts +53 in front. Better to leave the row out and say so than to store
+    // the first eight digits of somebody's foreign number.
+    if (rawPhone && !phone) {
+      skippedPhone += 1;
+      continue;
+    }
 
     customers.push({
       name,
-      phone: phone || undefined,
+      phone: phone ?? undefined,
       address: pick('address') || undefined,
       notes: pick('notes') || undefined,
     });
   }
 
-  return { customers, skipped, columns };
+  return { customers, skipped, skippedPhone, columns };
 }
 
 export interface ImportPlan {
@@ -217,7 +233,10 @@ export interface ImportPlan {
   toAdd: ParsedCustomer[];
   /** Already there, matched by phone or — lacking one — by name. */
   duplicates: ParsedCustomer[];
+  /** Carried no usable name. */
   skipped: number;
+  /** Dropped because the number was not a Cuban one. */
+  skippedPhone: number;
 }
 
 /**
@@ -250,5 +269,5 @@ export function planImport(
     toAdd.push(c);
   }
 
-  return { toAdd, duplicates, skipped: parsed.skipped };
+  return { toAdd, duplicates, skipped: parsed.skipped, skippedPhone: parsed.skippedPhone ?? 0 };
 }
