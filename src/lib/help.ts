@@ -132,6 +132,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       'Para borrar un cliente: entra en su ficha y toca “Eliminar cliente”.',
       'Para borrar varios de una vez: en la lista toca “Seleccionar”. Se pone sola en la pestaña Todos, tocas los que quieras (o “Marcar todos”, que marca lo que estés viendo) y abajo sale el botón rojo de eliminar.',
       'Un cliente que todavía debe no se puede borrar: su ficha es el único sitio donde se ve y se cobra esa deuda. Cóbrale primero.',
+      'Si son muchos, borrarlos lleva su tiempo. Sale un aviso con la cuenta —“120 de 900”— y la pantalla se queda bloqueada hasta que termina. No cierres la app ni le des al botón de atrás: a medias es peor que despacio.',
       'Borrar un cliente no toca las ventas que le hiciste: cada venta guarda su nombre, así que el historial y las cuentas siguen igual.',
     ],
     keywords: [

@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
+import ProgressOverlay from '@/components/ProgressOverlay';
+import { runWithProgress } from '@/lib/progress';
 import Portal from '@/components/Portal';
 import { useLiveQuery } from '@/lib/live';
 import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle, MessageSquare, MessageCircle, Contact, ImagePlus, Upload, Trash2 } from 'lucide-react';
@@ -44,6 +46,11 @@ export default function Clientes() {
   const [selecting, setSelecting] = useState(false);
   const [marked, setMarked] = useState<Set<number>>(new Set());
   const [confirmBulk, setConfirmBulk] = useState(false);
+  /**
+   * Progress of a running deletion, or null when none is. The total is captured
+   * here rather than read from `marked`, which gets cleared on the way out.
+   */
+  const [deleting, setDeleting] = useState<{ done: number; total: number } | null>(null);
 
   const customers = useLiveQuery(() => db.customers.toArray(), []);
   const installments = useLiveQuery(() => db.installments.toArray(), []);
@@ -125,8 +132,10 @@ export default function Clientes() {
     setMarked(new Set());
   };
 
-  // Back should drop out of selecting before it leaves the screen.
-  useBackHandler(leaveSelecting, selecting);
+  // Back should drop out of selecting before it leaves the screen — but not
+  // while a deletion is running: half of it done is worse than all of it slow.
+  useBackHandler(leaveSelecting, selecting && !deleting);
+  useBackHandler(() => {}, !!deleting);
 
   const toggleMarked = (id: number) => {
     setMarked((prev) => {
@@ -161,10 +170,13 @@ export default function Clientes() {
   const handleBulkDelete = async () => {
     setConfirmBulk(false);
     const ids = [...marked];
+    setDeleting({ done: 0, total: ids.length });
     try {
       // One refresh at the end, not one per customer.
       await batch(async () => {
-        for (const id of ids) await db.customers.delete(id);
+        await runWithProgress(ids, (id) => db.customers.delete(id), (done) =>
+          setDeleting({ done, total: ids.length }),
+        );
       });
       showToast(
         ids.length === 1 ? 'Cliente eliminado' : `${ids.length} clientes eliminados`,
@@ -173,6 +185,8 @@ export default function Clientes() {
       leaveSelecting();
     } catch {
       showToast('Error al eliminar', 'error');
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -400,6 +414,10 @@ export default function Clientes() {
         />
       )}
 
+      {deleting && (
+        <ProgressOverlay title="Eliminando clientes" done={deleting.done} total={deleting.total} />
+      )}
+
       {/* FAB ELIMINADO - ahora está en el header */}
     </div>
   );
@@ -422,8 +440,11 @@ function ImportCustomers({ existing, onBack }: { existing: Customer[]; onBack: (
   const [chosen, setChosen] = useState<Set<number>>(new Set());
   const [query, setQuery] = useState('');
   const [saving, setSaving] = useState(false);
+  const [added, setAdded] = useState(0);
 
-  useBackHandler(onBack);
+  // No leaving half an import behind.
+  useBackHandler(onBack, !saving);
+  useBackHandler(() => {}, saving);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -480,20 +501,24 @@ function ImportCustomers({ existing, onBack }: { existing: Customer[]; onBack: (
   const handleConfirm = async () => {
     if (!plan || saving || chosen.size === 0) return;
     setSaving(true);
+    setAdded(0);
     const picked = plan.toAdd.filter((_, i) => chosen.has(i));
     try {
       // One refresh at the end instead of one per customer, or three hundred
       // reloads would freeze the screen.
       await batch(async () => {
-        for (const c of picked) {
-          await db.customers.add({
-            name: c.name,
-            phone: c.phone,
-            address: c.address,
-            notes: c.notes,
-            createdAt: new Date(),
-          });
-        }
+        await runWithProgress(
+          picked,
+          (c) =>
+            db.customers.add({
+              name: c.name,
+              phone: c.phone,
+              address: c.address,
+              notes: c.notes,
+              createdAt: new Date(),
+            }).then(() => undefined),
+          setAdded,
+        );
       });
       showToast(
         picked.length === 1 ? '1 cliente importado' : `${picked.length} clientes importados`,
@@ -656,11 +681,16 @@ function ImportCustomers({ existing, onBack }: { existing: Customer[]; onBack: (
         </button>
         <button
           onClick={() => { setPlan(null); setColumns([]); setFileName(''); setChosen(new Set()); setQuery(''); }}
-          className="w-full h-11 border border-[#E2E8F0] text-[#475569] rounded-xl font-medium active:scale-[0.98] transition-transform"
+          disabled={saving}
+          className="w-full h-11 border border-[#E2E8F0] text-[#475569] rounded-xl font-medium active:scale-[0.98] transition-transform disabled:opacity-50"
         >
           Elegir otro archivo
         </button>
       </div>
+
+      {saving && (
+        <ProgressOverlay title="Guardando clientes" done={added} total={chosen.size} />
+      )}
     </div>
   );
 }

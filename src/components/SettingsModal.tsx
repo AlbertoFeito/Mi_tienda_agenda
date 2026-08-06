@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import ProgressOverlay from '@/components/ProgressOverlay';
+import { atLeast } from '@/lib/progress';
 import Portal from '@/components/Portal';
 import { Download, Upload, Trash2, KeyRound, Fingerprint, ShieldCheck, ImagePlus } from 'lucide-react';
 import { pickProductImage } from '@/lib/camera';
@@ -39,6 +41,8 @@ export default function SettingsModal({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showChangePin, setShowChangePin] = useState(false);
   const [biometricSupported, setBiometricSupported] = useState(false);
+  /** What long job is running, if any — its label doubles as the flag. */
+  const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
     biometricAvailable().then(setBiometricSupported);
@@ -62,8 +66,10 @@ export default function SettingsModal({
     showToast('Desbloqueo por huella activado', 'success');
   };
 
-  useBackHandler(onClose);
-  useBackHandler(() => { setShowDeleteModal(false); setDeleteConfirm(''); }, showDeleteModal);
+  useBackHandler(onClose, !busy);
+  useBackHandler(() => { setShowDeleteModal(false); setDeleteConfirm(''); }, showDeleteModal && !busy);
+  // Nothing leaves the screen while data is being rewritten.
+  useBackHandler(() => {}, !!busy);
 
   const handleSaveRates = async () => {
     await updateRates(usdRate, eurRate, mlcRate);
@@ -83,30 +89,44 @@ export default function SettingsModal({
   };
 
   const handleExport = async () => {
+    if (busy) return;
+    setBusy('Preparando la copia');
     try {
-      await shareBackup();
+      await atLeast(400, shareBackup());
       showToast('Copia de seguridad creada', 'success');
     } catch {
       showToast('Error al crear la copia', 'error');
+    } finally {
+      setBusy(null);
     }
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    e.target.value = '';
+    if (!file || busy) return;
+    setBusy('Restaurando la copia');
     try {
       const text = await file.text();
-      await importData(text);
+      await atLeast(400, importData(text));
       showToast('Datos importados correctamente', 'success');
     } catch {
       showToast('Error al importar datos', 'error');
+    } finally {
+      setBusy(null);
     }
   };
 
   const handleClear = async () => {
-    if (deleteConfirm === 'ELIMINAR') {
+    if (deleteConfirm !== 'ELIMINAR' || busy) return;
+    setBusy('Eliminando todos los datos');
+    try {
+      // Reloads the app when it finishes, so the overlay stays up until then.
       await clearAllData();
       showToast('Todos los datos han sido eliminados', 'warning');
+    } catch {
+      showToast('Error al eliminar los datos', 'error');
+      setBusy(null);
     }
   };
 
@@ -308,7 +328,7 @@ export default function SettingsModal({
               </div>
 
               <div className="text-center pt-4">
-                <p className="text-xs text-[#94A3B8]">NayadeStore v3.9</p>
+                <p className="text-xs text-[#94A3B8]">NayadeStore v4.0</p>
                 <p className="text-xs text-[#94A3B8]">Gestión comercial offline</p>
               </div>
             </div>
@@ -351,6 +371,8 @@ export default function SettingsModal({
         )}
 
         {showChangePin && <ChangePinModal onClose={() => setShowChangePin(false)} />}
+
+      {busy && <ProgressOverlay title={busy} />}
       </div>
     </Portal>
   );
