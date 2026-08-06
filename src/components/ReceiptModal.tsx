@@ -7,7 +7,7 @@ import { useApp } from '@/contexts/AppContext';
 
 /** Shown after a sale so the receipt can be shared with the customer. */
 export default function ReceiptModal({ data, onClose }: { data: ReceiptData; onClose: () => void }) {
-  const { showToast } = useApp();
+  const { showToast, settings } = useApp();
   useBackHandler(onClose);
   const text = buildReceiptText(data);
   const phone = data.customerPhone;
@@ -43,9 +43,19 @@ export default function ReceiptModal({ data, onClose }: { data: ReceiptData; onC
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up max-h-[85vh] flex flex-col">
         <div className="flex flex-col items-center pt-1 pb-3">
-          <div className="w-12 h-12 rounded-full bg-[#D1FAE5] flex items-center justify-center mb-2">
-            <CheckCircle size={26} className="text-[#059669]" />
-          </div>
+          {/* The shared text is plain SMS/WhatsApp and carries no image, so the
+              logo is here, where the sale is confirmed on screen. */}
+          {settings?.logo ? (
+            <img
+              src={settings.logo}
+              alt=""
+              className="w-12 h-12 rounded-xl object-cover mb-2 bg-[#F1F5F9]"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-[#D1FAE5] flex items-center justify-center mb-2">
+              <CheckCircle size={26} className="text-[#059669]" />
+            </div>
+          )}
           <h3 className="text-lg font-semibold">Venta registrada</h3>
           <p className="text-xs text-[#94A3B8]">Recibo {data.receiptNumber}</p>
         </div>

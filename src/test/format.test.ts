@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { abbreviate, moneyClass, moneySize } from '@/lib/format';
+import { abbreviate, fromCUP, moneyClass, moneySize } from '@/lib/format';
 
 /** The same formatter the app uses, so the test measures real strings. */
 function money(amount: number, currency = 'CUP'): string {
@@ -60,5 +60,29 @@ describe('abbreviate', () => {
 
   it('keeps the sign on negative amounts', () => {
     expect(abbreviate(-1_250_000)).toBe('-1.25 M');
+  });
+});
+
+describe('fromCUP', () => {
+  const rates = { USD: 320, EUR: 350, MLC: 300 };
+
+  it('turns pesos back into the currency asked for', () => {
+    expect(fromCUP(3200, 'USD', rates)).toBe(10);
+    expect(fromCUP(3500, 'EUR', rates)).toBe(10);
+  });
+
+  it('is the inverse of converting into CUP', () => {
+    const toCUP = (amount: number, c: string) => amount * (rates[c as 'USD'] ?? 1);
+    for (const amount of [1, 15.5, 1234.56]) {
+      expect(fromCUP(toCUP(amount, 'USD'), 'USD', rates)).toBeCloseTo(amount, 6);
+    }
+  });
+
+  it('leaves CUP alone', () => {
+    expect(fromCUP(1000, 'CUP', rates)).toBe(1000);
+  });
+
+  it('returns zero rather than Infinity when a rate is unset', () => {
+    expect(fromCUP(1000, 'USD', { USD: 0, EUR: 0, MLC: 0 })).toBe(0);
   });
 });

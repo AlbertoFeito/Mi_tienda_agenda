@@ -10,7 +10,11 @@ import LockScreen from '@/components/LockScreen';
 // Brief interruptions — including the biometric prompt itself, which briefly
 // backgrounds the app — must not re-lock, otherwise the fingerprint dialog
 // would keep popping up.
-const LOCK_AFTER_MS = 30_000;
+//
+// Thirty seconds was far too short: sending a receipt over WhatsApp already
+// takes longer than that, so the PIN came back in the most ordinary use there
+// is. Five minutes covers stepping out to another app and returning.
+const LOCK_AFTER_MS = 5 * 60_000;
 
 /**
  * Gates the whole app behind a single-user PIN (with optional fingerprint).

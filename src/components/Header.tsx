@@ -13,9 +13,18 @@ export default function Header({ onReplayTour }: { onReplayTour: () => void }) {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 h-14 bg-[#134E4A] text-white flex items-center justify-between px-4 z-50 shadow-sm max-w-lg mx-auto">
-        <h1 className="text-lg font-bold tracking-tight truncate mr-2">
-          {settings?.storeName?.trim() || 'Mi Tienda'}
-        </h1>
+        <div className="flex items-center gap-2 min-w-0 mr-2">
+          {settings?.logo && (
+            <img
+              src={settings.logo}
+              alt=""
+              className="w-8 h-8 rounded-lg object-cover flex-shrink-0 bg-white/10"
+            />
+          )}
+          <h1 className="text-lg font-bold tracking-tight truncate">
+            {settings?.storeName?.trim() || 'Mi Tienda'}
+          </h1>
+        </div>
         <div className="flex items-center flex-shrink-0">
           <button
             onClick={() => setShowHelp(true)}

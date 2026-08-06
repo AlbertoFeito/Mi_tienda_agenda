@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useLiveQuery } from '@/lib/live';
-import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle, MessageSquare, MessageCircle, Contact } from 'lucide-react';
+import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle, MessageSquare, MessageCircle, Contact, ImagePlus, Upload } from 'lucide-react';
 import { db } from '@/lib/db';
+import { pickProductImage } from '@/lib/camera';
+import { parseCustomers, planImport, type ImportPlan } from '@/lib/csv';
 import { useBackHandler } from '@/lib/backHandler';
 import NumberField from '@/components/NumberField';
 import PhoneField, { isValidCubanPhone, normalizeCubanPhone } from '@/components/PhoneField';
@@ -10,7 +12,7 @@ import { pickPhoneContact, savePhoneContact, contactsSupported } from '@/lib/con
 import { useApp } from '@/contexts/AppContext';
 import type { Customer, Installment, InstallmentPayment, PaymentMethod } from '@/types';
 
-type ViewState = 'list' | 'form' | 'detail';
+type ViewState = 'list' | 'form' | 'detail' | 'import';
 type CustomerTab = 'active' | 'all' | 'paid';
 
 export default function Clientes() {
@@ -91,6 +93,10 @@ export default function Clientes() {
     return <CustomerForm customer={editingCustomer} onBack={() => setView('list')} onSave={() => { setView('list'); setEditingCustomer(null); }} />;
   }
 
+  if (view === 'import') {
+    return <ImportCustomers existing={customers ?? []} onBack={() => setView('list')} />;
+  }
+
   if (view === 'detail' && selectedCustomer && installments && payments) {
     return (
       <CustomerDetail
@@ -108,12 +114,21 @@ export default function Clientes() {
       {/* Header con botón de agregar */}
       <div className="flex items-center justify-between mb-3 px-4 pt-4">
         <h2 className="text-xl font-bold">Clientes</h2>
-        <button
-          onClick={() => openForm()}
-          className="w-10 h-10 bg-[#0F766E] text-white rounded-full shadow-sm flex items-center justify-center active:scale-90 transition-transform"
-        >
-          <Plus size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setView('import')}
+            className="h-10 px-3 flex items-center gap-1.5 border border-[#0F766E] text-[#0F766E] rounded-full text-sm font-medium active:scale-95 transition-transform"
+          >
+            <Upload size={16} />
+            Importar
+          </button>
+          <button
+            onClick={() => openForm()}
+            className="w-10 h-10 bg-[#0F766E] text-white rounded-full shadow-sm flex items-center justify-center active:scale-90 transition-transform"
+          >
+            <Plus size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -169,9 +184,17 @@ export default function Clientes() {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-[#F1F5F9] flex items-center justify-center flex-shrink-0">
-                    <User size={18} className="text-[#94A3B8]" />
-                  </div>
+                  {cd.customer.avatar ? (
+                    <img
+                      src={cd.customer.avatar}
+                      alt=""
+                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[#F1F5F9] flex items-center justify-center flex-shrink-0">
+                      <User size={18} className="text-[#94A3B8]" />
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm font-semibold text-[#0F172A]">{cd.customer.name}</p>
                     {cd.customer.phone && <p className="text-xs text-[#94A3B8]">{cd.customer.phone}</p>}
@@ -210,12 +233,173 @@ export default function Clientes() {
   );
 }
 
+/**
+ * Bringing a customer list in from a CSV.
+ *
+ * Nothing is written until the file has been read and the user has seen what it
+ * would do — how many are new, how many are already in the book, how many rows
+ * carried no name. An import that quietly doubled every customer would be worse
+ * than typing them in by hand.
+ */
+function ImportCustomers({ existing, onBack }: { existing: Customer[]; onBack: () => void }) {
+  const { showToast } = useApp();
+  const [plan, setPlan] = useState<ImportPlan | null>(null);
+  const [columns, setColumns] = useState<string[]>([]);
+  const [fileName, setFileName] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useBackHandler(onBack);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const parsed = parseCustomers(await file.text());
+      if (!parsed.customers.length && !parsed.skipped) {
+        showToast('El archivo no tiene filas que leer', 'error');
+        return;
+      }
+      setFileName(file.name);
+      setColumns(parsed.columns);
+      setPlan(planImport(parsed, existing));
+    } catch {
+      showToast('No se pudo leer el archivo', 'error');
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (!plan || saving) return;
+    setSaving(true);
+    try {
+      for (const c of plan.toAdd) {
+        await db.customers.add({
+          name: c.name,
+          phone: c.phone,
+          address: c.address,
+          notes: c.notes,
+          createdAt: new Date(),
+        });
+      }
+      showToast(
+        plan.toAdd.length === 1 ? '1 cliente importado' : `${plan.toAdd.length} clientes importados`,
+        'success',
+      );
+      onBack();
+    } catch {
+      showToast('Error al guardar los clientes', 'error');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="animate-fade-in-up">
+      <div className="flex items-center gap-2 mb-4 px-4 pt-4">
+        <h2 className="text-lg font-semibold">Importar clientes</h2>
+      </div>
+
+      <div className="space-y-4 pb-8 px-4">
+        {!plan ? (
+          <>
+            <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-2">
+              <p className="text-sm text-[#475569]">
+                Elige un archivo <span className="font-semibold">.csv</span> con tus clientes. Sirve
+                el que exporta la agenda de Google Contacts, o uno hecho en Excel con las columnas{' '}
+                <span className="font-semibold">Nombre</span>,{' '}
+                <span className="font-semibold">Teléfono</span>,{' '}
+                <span className="font-semibold">Dirección</span> y{' '}
+                <span className="font-semibold">Notas</span>.
+              </p>
+              <p className="text-xs text-[#94A3B8]">
+                No se borra ni se cambia nada de lo que ya tienes. Los que ya estén guardados se
+                saltan, así que puedes importar el mismo archivo dos veces sin duplicar a nadie.
+              </p>
+            </div>
+
+            <label className="w-full h-14 flex items-center justify-center gap-2 bg-[#0F766E] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform cursor-pointer">
+              <Upload size={18} />
+              Elegir archivo .csv
+              <input type="file" accept=".csv,text/csv" onChange={handleFile} className="hidden" />
+            </label>
+          </>
+        ) : (
+          <>
+            <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-3">
+              <p className="text-sm font-semibold text-[#0F172A] break-all">{fileName}</p>
+              {columns.length > 0 && (
+                <p className="text-xs text-[#94A3B8]">Columnas leídas: {columns.join(', ')}</p>
+              )}
+
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle size={18} className="text-[#059669] flex-shrink-0" />
+                <span className="text-[#0F172A]">
+                  <span className="font-bold">{plan.toAdd.length}</span> se van a agregar
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <User size={18} className="text-[#94A3B8] flex-shrink-0" />
+                <span className="text-[#475569]">
+                  <span className="font-bold">{plan.duplicates.length}</span> ya estaban guardados
+                </span>
+              </div>
+              {plan.skipped > 0 && (
+                <div className="flex items-center gap-2 text-sm">
+                  <AlertTriangle size={18} className="text-[#D97706] flex-shrink-0" />
+                  <span className="text-[#475569]">
+                    <span className="font-bold">{plan.skipped}</span> fila(s) sin nombre, no se
+                    pueden usar
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {plan.toAdd.length > 0 && (
+              <div className="bg-white rounded-xl border border-[#E2E8F0] p-4">
+                <p className="text-xs font-medium text-[#94A3B8] mb-2">Se van a agregar</p>
+                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                  {plan.toAdd.map((c, i) => (
+                    <div key={i} className="flex items-baseline justify-between gap-2">
+                      <span className="text-sm text-[#0F172A] truncate">{c.name}</span>
+                      <span className="text-xs text-[#94A3B8] flex-shrink-0">
+                        {c.phone || 'sin teléfono'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleConfirm}
+              disabled={plan.toAdd.length === 0 || saving}
+              className="w-full h-14 bg-[#0F766E] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform disabled:opacity-50"
+            >
+              {plan.toAdd.length === 0
+                ? 'No hay nadie nuevo que agregar'
+                : saving
+                  ? 'Guardando...'
+                  : `Agregar ${plan.toAdd.length} cliente(s)`}
+            </button>
+            <button
+              onClick={() => { setPlan(null); setColumns([]); setFileName(''); }}
+              className="w-full h-12 border border-[#E2E8F0] text-[#475569] rounded-xl font-medium active:scale-[0.98] transition-transform"
+            >
+              Elegir otro archivo
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null; onBack: () => void; onSave: () => void }) {
   const { showToast } = useApp();
   const [name, setName] = useState(customer?.name || '');
   const [phone, setPhone] = useState(customer?.phone || '');
   const [address, setAddress] = useState(customer?.address || '');
   const [notes, setNotes] = useState(customer?.notes || '');
+  const [avatar, setAvatar] = useState<string | undefined>(customer?.avatar);
 
   useBackHandler(onBack);
 
@@ -247,6 +431,7 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
       phone: normalizeCubanPhone(phone) || undefined,
       address: address.trim() || undefined,
       notes: notes.trim() || undefined,
+      avatar,
       createdAt: customer?.createdAt || new Date(),
     };
 
@@ -286,6 +471,33 @@ function CustomerForm({ customer, onBack, onSave }: { customer: Customer | null;
             Elegir de contactos
           </button>
         )}
+        <div className="flex flex-col items-center gap-1.5">
+          <button
+            type="button"
+            onClick={async () => {
+              const picked = await pickProductImage();
+              if (picked) setAvatar(picked);
+            }}
+            className="w-24 h-24 rounded-full bg-[#F1F5F9] flex items-center justify-center overflow-hidden border-2 border-dashed border-[#CBD5E1] active:border-[#0F766E]"
+            aria-label="Foto del cliente"
+          >
+            {avatar ? (
+              <img src={avatar} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <ImagePlus className="w-7 h-7 text-[#94A3B8]" />
+            )}
+          </button>
+          <span className="text-xs text-[#94A3B8]">Foto del cliente (opcional)</span>
+          {avatar && (
+            <button
+              type="button"
+              onClick={() => setAvatar(undefined)}
+              className="text-xs font-medium text-[#DC2626] active:opacity-70"
+            >
+              Quitar foto
+            </button>
+          )}
+        </div>
         <div>
           <label className="text-sm font-medium text-[#475569] block mb-1">Nombre completo *</label>
           <input

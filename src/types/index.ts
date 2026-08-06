@@ -83,6 +83,8 @@ export interface Sale {
 export interface Customer {
   id?: number;
   name: string;
+  /** Photo, so a face is easier to place than a name in a list. */
+  avatar?: string;
   phone?: string;
   address?: string;
   notes?: string;
@@ -196,6 +198,8 @@ export interface OwnerPayment {
 export interface AppSettings {
   id?: number;
   storeName: string;
+  /** Shop logo, shown in the header and on the receipt. */
+  logo?: string;
   address?: string;
   phone?: string;
   primaryCurrency: Currency;

@@ -6,14 +6,20 @@ import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
 import UpcomingCollections from '@/components/UpcomingCollections';
 import FirstSteps from '@/components/FirstSteps';
-import { moneyClass } from '@/lib/format';
+import { fromCUP, moneyClass } from '@/lib/format';
 import { lineProfitCUP } from '@/lib/cost';
 import { activeSales } from '@/lib/sales';
 import { isToday, isPast, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { formatPrice, convertToCUP } = useApp();
+  const { formatPrice, convertToCUP, settings, currencyRates } = useApp();
+
+  // Equivalencia aproximada, solo si eligió una moneda distinta del CUP. Las
+  // cuentas siguen en CUP: esto es una referencia, no el número bueno.
+  const ref = settings?.primaryCurrency && settings.primaryCurrency !== 'CUP'
+    ? settings.primaryCurrency
+    : null;
 
   const sales = useLiveQuery(() => db.sales.toArray(), []);
   const products = useLiveQuery(() => db.products.toArray(), []);
@@ -118,10 +124,10 @@ export default function Dashboard() {
       {/* Hero Stats */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { icon: TrendingUp, color: 'text-[#059669]', bg: 'bg-[#D1FAE5]', label: 'Ventas Hoy', value: formatPrice(stats.todaySales, 'CUP'), sub: `${stats.recentSales.length} ventas` },
-          { icon: DollarSign, color: 'text-[#0F766E]', bg: 'bg-[#CCFBF1]', label: 'Ganancia Hoy', value: formatPrice(stats.todayProfit, 'CUP'), sub: '' },
+          { icon: TrendingUp, color: 'text-[#059669]', bg: 'bg-[#D1FAE5]', label: 'Ventas Hoy', value: formatPrice(stats.todaySales, 'CUP'), cup: stats.todaySales, sub: `${stats.recentSales.length} ventas` },
+          { icon: DollarSign, color: 'text-[#0F766E]', bg: 'bg-[#CCFBF1]', label: 'Ganancia Hoy', value: formatPrice(stats.todayProfit, 'CUP'), cup: stats.todayProfit, sub: '' },
           { icon: Package, color: 'text-[#D97706]', bg: 'bg-[#FEF3C7]', label: 'En Stock', value: String(stats.totalStock), sub: stats.lowStock > 0 ? `${stats.lowStock} bajos` : '' },
-          { icon: CreditCard, color: 'text-[#DC2626]', bg: 'bg-[#FEE2E2]', label: 'Por Cobrar', value: formatPrice(stats.pendingDebt, 'CUP'), sub: `${stats.debtors} deudores` },
+          { icon: CreditCard, color: 'text-[#DC2626]', bg: 'bg-[#FEE2E2]', label: 'Por Cobrar', value: formatPrice(stats.pendingDebt, 'CUP'), cup: stats.pendingDebt, sub: `${stats.debtors} deudores` },
         ].map((stat, i) => (
           <div key={i} className={`bg-white rounded-xl p-4 shadow-sm animate-fade-in-up stagger-${i + 1}`} style={{ opacity: 0 }}>
             <div className={`w-9 h-9 rounded-full ${stat.bg} flex items-center justify-center mb-2`}>
@@ -130,6 +136,11 @@ export default function Dashboard() {
             <p className="text-xs text-[#475569]">{stat.label}</p>
             {/* Nunca truncado: media cifra de dinero engaña más que informa. */}
             <p className={`font-bold text-[#0F172A] break-words ${moneyClass(stat.value, 'lg')}`}>{stat.value}</p>
+            {ref && stat.cup !== undefined && (
+              <p className="text-[11px] text-[#94A3B8] tabular-nums">
+                ≈ {formatPrice(fromCUP(stat.cup, ref, currencyRates), ref)}
+              </p>
+            )}
             {stat.sub && <p className="text-[11px] text-[#94A3B8]">{stat.sub}</p>}
           </div>
         ))}

@@ -44,3 +44,24 @@ export function abbreviate(value: number): string {
   if (abs >= 100_000) return `${(value / 1000).toFixed(1)} mil`;
   return new Intl.NumberFormat('es-CU').format(value);
 }
+
+/** Rates as the app keeps them: how many CUP one unit of each currency is worth. */
+export interface Rates {
+  USD: number;
+  EUR: number;
+  MLC: number;
+}
+
+/**
+ * A CUP amount expressed in another currency, at today's rate.
+ *
+ * Only ever for showing an approximate equivalence beside a figure. The books
+ * are kept in CUP and every sale freezes its own numbers there; converting a
+ * past total would make it drift every time the dollar moves.
+ */
+export function fromCUP(amountCUP: number, currency: string, rates: Rates): number {
+  if (currency === 'USD') return rates.USD > 0 ? amountCUP / rates.USD : 0;
+  if (currency === 'EUR') return rates.EUR > 0 ? amountCUP / rates.EUR : 0;
+  if (currency === 'MLC') return rates.MLC > 0 ? amountCUP / rates.MLC : 0;
+  return amountCUP;
+}

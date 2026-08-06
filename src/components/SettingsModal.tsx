@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Download, Upload, Trash2, KeyRound, Fingerprint, ShieldCheck } from 'lucide-react';
+import { Download, Upload, Trash2, KeyRound, Fingerprint, ShieldCheck, ImagePlus } from 'lucide-react';
+import { pickProductImage } from '@/lib/camera';
 import ChangePinModal from '@/components/ChangePinModal';
 import { useApp } from '@/contexts/AppContext';
 import { importData, clearAllData } from '@/lib/db';
@@ -32,6 +33,7 @@ export default function SettingsModal({
   const [address, setAddress] = useState(settings?.address ?? '');
   const [phone, setPhone] = useState(settings?.phone ?? '');
   const [primaryCurrency, setPrimaryCurrency] = useState<Currency>(settings?.primaryCurrency ?? 'CUP');
+  const [logo, setLogo] = useState<string | undefined>(settings?.logo);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showChangePin, setShowChangePin] = useState(false);
@@ -72,8 +74,11 @@ export default function SettingsModal({
       showToast('El teléfono debe tener 8 dígitos (Cuba)', 'error');
       return;
     }
-    await updateStoreInfo({ storeName, address, phone: normalizeCubanPhone(phone), primaryCurrency });
+    await updateStoreInfo({ storeName, address, phone: normalizeCubanPhone(phone), primaryCurrency, logo });
     showToast('Datos de la tienda guardados', 'success');
+    // Guardar es el final de la tarea: se vuelve a la tienda con el aviso a la
+    // vista, en vez de dejarla en una pantalla que ya no tiene nada que hacer.
+    onClose();
   };
 
   const handleExport = async () => {
@@ -155,6 +160,37 @@ export default function SettingsModal({
         {activeTab === 'store' && (
           <div className="space-y-4">
             <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 space-y-4">
+              <div className="flex flex-col items-center gap-2 pb-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const img = await pickProductImage();
+                      if (img) setLogo(img);
+                    } catch {
+                      showToast('No se pudo obtener la imagen', 'error');
+                    }
+                  }}
+                  className="w-20 h-20 rounded-2xl bg-[#F1F5F9] flex items-center justify-center overflow-hidden border-2 border-dashed border-[#CBD5E1] active:border-[#0F766E]"
+                >
+                  {logo ? (
+                    <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImagePlus className="w-7 h-7 text-[#94A3B8]" />
+                  )}
+                </button>
+                <span className="text-xs text-[#94A3B8]">Logo de la tienda</span>
+                {logo && (
+                  <button
+                    type="button"
+                    onClick={() => setLogo(undefined)}
+                    className="text-xs font-medium text-[#DC2626] active:opacity-70"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+
               <div>
                 <label className="text-sm font-medium text-[#475569] block mb-1">Nombre de la tienda</label>
                 <input
@@ -178,7 +214,7 @@ export default function SettingsModal({
                 <PhoneField value={phone} onChange={setPhone} />
               </div>
               <div>
-                <label className="text-sm font-medium text-[#475569] block mb-1">Moneda principal</label>
+                <label className="text-sm font-medium text-[#475569] block mb-1">Moneda de referencia</label>
                 <select
                   value={primaryCurrency}
                   onChange={(e) => setPrimaryCurrency(e.target.value as Currency)}
@@ -189,6 +225,10 @@ export default function SettingsModal({
                   <option value="EUR">EUR</option>
                   <option value="MLC">MLC</option>
                 </select>
+                <p className="text-xs text-[#94A3B8] mt-1">
+                  Las cuentas se llevan siempre en CUP. Si eliges otra, se añade la
+                  equivalencia aproximada al cambio de hoy debajo de las cifras.
+                </p>
               </div>
               <button
                 onClick={handleSaveStore}
@@ -266,7 +306,7 @@ export default function SettingsModal({
             </div>
 
             <div className="text-center pt-4">
-              <p className="text-xs text-[#94A3B8]">NayadeStore v3.4</p>
+              <p className="text-xs text-[#94A3B8]">NayadeStore v3.5</p>
               <p className="text-xs text-[#94A3B8]">Gestión comercial offline</p>
             </div>
           </div>

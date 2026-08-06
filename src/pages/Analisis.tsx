@@ -7,6 +7,7 @@ import { db } from '@/lib/db';
 import { useApp } from '@/contexts/AppContext';
 import SalesHistory from '@/components/SalesHistory';
 import { lineCostCUP, lineProfitCUP } from '@/lib/cost';
+import { fromCUP, moneyClass } from '@/lib/format';
 import { activeSales } from '@/lib/sales';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, subDays } from 'date-fns';
 import type { PeriodFilter } from '@/types';
@@ -30,7 +31,10 @@ const PIE_COLORS = {
 // const CHART_COLORS = ['#0F766E', '#14B8A6', '#5EEAD4', '#99F6E4', '#CCFBF1'];
 
 export default function Analisis() {
-  const { formatPrice, convertToCUP } = useApp();
+  const { formatPrice, convertToCUP, settings, currencyRates } = useApp();
+  const ref = settings?.primaryCurrency && settings.primaryCurrency !== 'CUP'
+    ? settings.primaryCurrency
+    : null;
   const location = useLocation();
   // "Ver todas" del inicio entra directamente en el listado de ventas.
   const [tab, setTab] = useState<'resumen' | 'ventas'>(
@@ -233,17 +237,22 @@ export default function Analisis() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { icon: TrendingUp, color: 'text-[#059669]', bg: 'bg-[#D1FAE5]', label: 'Ventas Totales', value: formatPrice(stats.summary.totalSales, 'CUP'), sub: `${stats.filteredSales.length} ventas` },
-          { icon: DollarSign, color: 'text-[#0F766E]', bg: 'bg-[#CCFBF1]', label: 'Ganancia Neta', value: formatPrice(stats.summary.totalProfit, 'CUP'), sub: '' },
+          { icon: TrendingUp, color: 'text-[#059669]', bg: 'bg-[#D1FAE5]', label: 'Ventas Totales', value: formatPrice(stats.summary.totalSales, 'CUP'), cup: stats.summary.totalSales, sub: `${stats.filteredSales.length} ventas` },
+          { icon: DollarSign, color: 'text-[#0F766E]', bg: 'bg-[#CCFBF1]', label: 'Ganancia Neta', value: formatPrice(stats.summary.totalProfit, 'CUP'), cup: stats.summary.totalProfit, sub: '' },
           { icon: Package, color: 'text-[#D97706]', bg: 'bg-[#FEF3C7]', label: 'Productos', value: String(stats.summary.totalProducts), sub: 'unidades' },
-          { icon: CreditCard, color: 'text-[#64748B]', bg: 'bg-[#F1F5F9]', label: 'Ticket Promedio', value: formatPrice(stats.summary.avgTicket, 'CUP'), sub: 'por venta' },
+          { icon: CreditCard, color: 'text-[#64748B]', bg: 'bg-[#F1F5F9]', label: 'Ticket Promedio', value: formatPrice(stats.summary.avgTicket, 'CUP'), cup: stats.summary.avgTicket, sub: 'por venta' },
         ].map((stat, i) => (
           <div key={i} className="bg-white rounded-xl p-4 shadow-sm">
             <div className={`w-8 h-8 rounded-full ${stat.bg} flex items-center justify-center mb-2`}>
               <stat.icon size={16} className={stat.color} />
             </div>
             <p className="text-[11px] text-[#475569]">{stat.label}</p>
-            <p className="text-base font-bold text-[#0F172A] truncate">{stat.value}</p>
+            <p className={`font-bold text-[#0F172A] break-words ${moneyClass(stat.value)}`}>{stat.value}</p>
+            {ref && stat.cup !== undefined && (
+              <p className="text-[10px] text-[#94A3B8] tabular-nums">
+                ≈ {formatPrice(fromCUP(stat.cup, ref, currencyRates), ref)}
+              </p>
+            )}
             {stat.sub && <p className="text-[10px] text-[#94A3B8]">{stat.sub}</p>}
           </div>
         ))}
