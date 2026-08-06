@@ -3,7 +3,7 @@ import ProgressOverlay from '@/components/ProgressOverlay';
 import { runWithProgress } from '@/lib/progress';
 import Portal from '@/components/Portal';
 import { useLiveQuery } from '@/lib/live';
-import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle, MessageSquare, MessageCircle, Contact, ImagePlus, Upload, Trash2 } from 'lucide-react';
+import { Search, Plus, X, User, Phone, CreditCard, CheckCircle, Clock, AlertTriangle, MessageSquare, MessageCircle, Contact, ImagePlus, Upload, Trash2, Copy } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import FixedBottomBar from '@/components/FixedBottomBar';
 import { db } from '@/lib/db';
@@ -397,7 +397,7 @@ export default function Clientes() {
           <button
             onClick={() => setConfirmBulk(true)}
             disabled={marked.size === 0}
-            className="w-full h-14 flex items-center justify-center gap-2 bg-[#DC2626] text-white rounded-xl font-semibold text-base shadow-lg active:scale-[0.98] transition-transform disabled:bg-[#94A3B8]"
+            className="w-full h-14 flex items-center justify-center gap-2 bg-[#DC2626] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform disabled:bg-[#94A3B8]"
           >
             <Trash2 size={18} />
             {marked.size === 0 ? 'Marca los que quieras borrar' : `Eliminar ${marked.size} cliente(s)`}
@@ -589,7 +589,17 @@ function ImportCustomers({ existing, onBack }: { existing: Customer[]; onBack: (
             <div className="flex items-center gap-2 text-sm">
               <User size={18} className="text-[#94A3B8] flex-shrink-0" />
               <span className="text-[#475569]">
-                <span className="font-bold">{plan.duplicates.length}</span> ya estaban guardados
+                <span className="font-bold">{plan.duplicates.length}</span> ya los tenías en tus
+                clientes
+              </span>
+            </div>
+          )}
+          {plan.repeated.length > 0 && (
+            <div className="flex items-start gap-2 text-sm">
+              <Copy size={18} className="text-[#94A3B8] flex-shrink-0 mt-0.5" />
+              <span className="text-[#475569]">
+                <span className="font-bold">{plan.repeated.length}</span> repetidos dentro del
+                archivo: los tienes guardados dos veces en la agenda del teléfono
               </span>
             </div>
           )}
@@ -642,7 +652,8 @@ function ImportCustomers({ existing, onBack }: { existing: Customer[]; onBack: (
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-2">
+      {/* Space at the foot for the fixed bar, so the last name is reachable. */}
+      <div className="flex-1 overflow-y-auto px-4 py-2 pb-40">
         {visible.length === 0 ? (
           <p className="text-center text-sm text-[#94A3B8] py-10">
             {plan.toAdd.length === 0 ? 'No hay nadie nuevo en ese archivo' : 'Sin resultados'}
@@ -667,26 +678,30 @@ function ImportCustomers({ existing, onBack }: { existing: Customer[]; onBack: (
         )}
       </div>
 
-      <div className="px-4 py-3 bg-white border-t border-[#E2E8F0] space-y-2">
-        <button
-          onClick={handleConfirm}
-          disabled={chosen.size === 0 || saving}
-          className="w-full h-14 bg-[#0F766E] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform disabled:opacity-50"
-        >
-          {saving
-            ? 'Guardando...'
-            : chosen.size === 0
-              ? 'No hay nadie seleccionado'
-              : `Agregar ${chosen.size} cliente(s)`}
-        </button>
-        <button
-          onClick={() => { setPlan(null); setColumns([]); setFileName(''); setChosen(new Set()); setQuery(''); }}
-          disabled={saving}
-          className="w-full h-11 border border-[#E2E8F0] text-[#475569] rounded-xl font-medium active:scale-[0.98] transition-transform disabled:opacity-50"
-        >
-          Elegir otro archivo
-        </button>
-      </div>
+      {/* Pinned like the delete bar: with three hundred names in the list, a
+          button at the foot of the page is a button nobody finds. */}
+      <FixedBottomBar>
+        <div className="space-y-2">
+          <button
+            onClick={handleConfirm}
+            disabled={chosen.size === 0 || saving}
+            className="w-full h-14 bg-[#0F766E] text-white rounded-xl font-semibold text-base active:scale-[0.98] transition-transform disabled:bg-[#94A3B8]"
+          >
+            {saving
+              ? 'Guardando...'
+              : chosen.size === 0
+                ? 'No hay nadie seleccionado'
+                : `Agregar ${chosen.size} cliente(s)`}
+          </button>
+          <button
+            onClick={() => { setPlan(null); setColumns([]); setFileName(''); setChosen(new Set()); setQuery(''); }}
+            disabled={saving}
+            className="w-full h-11 border border-[#E2E8F0] text-[#475569] rounded-xl font-medium active:scale-[0.98] transition-transform disabled:opacity-50"
+          >
+            Elegir otro archivo
+          </button>
+        </div>
+      </FixedBottomBar>
 
       {saving && (
         <ProgressOverlay title="Guardando clientes" done={added} total={chosen.size} />

@@ -127,6 +127,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       'Con “Importar” metes de golpe la agenda del teléfono. En el teléfono: Contactos → Ajustes → Exportar. Eso te deja un archivo .vcf; elígelo aquí. También sirve un .csv hecho en Excel con las columnas Nombre, Teléfono, Dirección y Notas.',
       'Después salen todos con una casilla marcada, con buscador y botones Todos / Ninguno. Desmarca lo que no sea cliente: en la agenda están la pizzería y los Bomberos.',
       'Los que ya tenías guardados se saltan solos, así que puedes importar el mismo archivo dos veces sin duplicar a nadie.',
+      'Si el resumen dice “repetidos dentro del archivo”, no es cosa de la app: es que en la agenda del teléfono tienes a esa persona guardada dos veces con el mismo número. Solo entra una.',
       'Los contactos con teléfono extranjero o con códigos cortos (105, 2266) no entran, porque la app marca siempre con +53 delante y esos números no funcionarían.',
       'Si un contacto tenía varios números, se guarda el principal y los demás quedan anotados en sus Notas.',
       'Para borrar un cliente: entra en su ficha y toca “Eliminar cliente”.',

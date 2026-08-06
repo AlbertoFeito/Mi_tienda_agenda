@@ -148,7 +148,40 @@ describe('planImport', () => {
   it('does not duplicate rows repeated inside the file itself', () => {
     const plan = planImport(parse('nombre,telefono\nAna,55512345\nAna,55512345'), []);
     expect(plan.toAdd).toHaveLength(1);
-    expect(plan.duplicates).toHaveLength(1);
+    expect(plan.repeated).toHaveLength(1);
+  });
+
+  it('keeps "already in the book" apart from "repeated in the file"', () => {
+    // Telling someone who just emptied their customer list that 51 were
+    // "already saved" is untrue: those are the same person twice in the phone.
+    const plan = planImport(
+      parse('nombre,telefono\nAna,55512345\nAna,55512345\nYeni,55598765'),
+      [],
+    );
+    expect(plan.duplicates).toHaveLength(0);
+    expect(plan.repeated.map((c) => c.name)).toEqual(['Ana']);
+    expect(plan.toAdd.map((c) => c.name)).toEqual(['Ana', 'Yeni']);
+  });
+
+  it('counts as already-in-the-book only what really is', () => {
+    const plan = planImport(parse('nombre,telefono\nAna,55512345\nAna,55512345'), [
+      { name: 'Ana', phone: '55512345' },
+    ]);
+    expect(plan.duplicates).toHaveLength(2);
+    expect(plan.repeated).toHaveLength(0);
+    expect(plan.toAdd).toHaveLength(0);
+  });
+
+  it('every row lands in exactly one bucket', () => {
+    const csv =
+      'nombre,telefono\nAna,55512345\nAna,55512345\nYeni,55598765\nVieja,55511111\n,55522222\nMiami,+15550190123';
+    const parsed = parse(csv);
+    const plan = planImport(parsed, [{ name: 'Vieja', phone: '55511111' }]);
+    const accounted =
+      plan.toAdd.length + plan.duplicates.length + plan.repeated.length;
+    expect(accounted).toBe(parsed.customers.length);
+    expect(plan.skipped).toBe(1); // sin nombre
+    expect(plan.skippedPhone).toBe(1); // extranjero
   });
 
   it('importing the same file twice adds nothing the second time', () => {

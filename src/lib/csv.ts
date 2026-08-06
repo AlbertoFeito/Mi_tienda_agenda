@@ -231,8 +231,15 @@ export function parseCustomers(text: string): ParseResult {
 export interface ImportPlan {
   /** Customers that are not in the book yet. */
   toAdd: ParsedCustomer[];
-  /** Already there, matched by phone or — lacking one — by name. */
+  /** Already in the book, matched by phone or — lacking one — by name. */
   duplicates: ParsedCustomer[];
+  /**
+   * Repeated inside the file itself, which is a different thing entirely: the
+   * same person saved twice in the phone's contacts. Lumping these in with the
+   * ones already in the book says "51 were already saved" to someone who had
+   * just emptied their customer list, which is simply untrue.
+   */
+  repeated: ParsedCustomer[];
   /** Carried no usable name. */
   skipped: number;
   /** Dropped because the number was not a Cuban one. */
@@ -249,25 +256,43 @@ export function planImport(
   parsed: ParseResult,
   existing: { name: string; phone?: string }[],
 ): ImportPlan {
-  const phones = new Set(
+  const bookPhones = new Set(
     existing.map((c) => normalizeCubanPhone(c.phone || '')).filter((p) => p.length > 0),
   );
-  const names = new Set(existing.map((c) => fold(c.name)));
+  const bookNames = new Set(existing.map((c) => fold(c.name)));
+
+  // Kept apart from the book so the two can be reported for what they are.
+  const seenPhones = new Set<string>();
+  const seenNames = new Set<string>();
 
   const toAdd: ParsedCustomer[] = [];
   const duplicates: ParsedCustomer[] = [];
+  const repeated: ParsedCustomer[] = [];
 
   for (const c of parsed.customers) {
-    const isDupe = c.phone ? phones.has(c.phone) : names.has(fold(c.name));
-    if (isDupe) {
+    const key = c.phone ?? fold(c.name);
+    const inBook = c.phone ? bookPhones.has(c.phone) : bookNames.has(key);
+    if (inBook) {
       duplicates.push(c);
       continue;
     }
-    // Guard against repeats inside the file itself, too.
-    if (c.phone) phones.add(c.phone);
-    else names.add(fold(c.name));
+
+    const seenAlready = c.phone ? seenPhones.has(c.phone) : seenNames.has(key);
+    if (seenAlready) {
+      repeated.push(c);
+      continue;
+    }
+
+    if (c.phone) seenPhones.add(c.phone);
+    else seenNames.add(key);
     toAdd.push(c);
   }
 
-  return { toAdd, duplicates, skipped: parsed.skipped, skippedPhone: parsed.skippedPhone ?? 0 };
+  return {
+    toAdd,
+    duplicates,
+    repeated,
+    skipped: parsed.skipped,
+    skippedPhone: parsed.skippedPhone ?? 0,
+  };
 }
