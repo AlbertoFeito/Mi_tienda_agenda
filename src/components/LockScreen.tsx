@@ -77,7 +77,7 @@ export default function LockScreen({ mode, onSubmit, onBiometric, storeName }: L
   };
 
   return (
-    <div className="fixed inset-0 z-[500] bg-gradient-to-b from-[#0F766E] to-[#134E4A] text-white flex flex-col items-center justify-center px-8">
+    <div className="fixed inset-0 z-[500] bg-gradient-to-b from-[#0F766E] to-[#134E4A] text-white flex flex-col items-center justify-center px-8 pt-safe pb-safe">
       <div className="w-16 h-16 rounded-2xl bg-white/15 flex items-center justify-center mb-6">
         <Lock size={30} />
       </div>

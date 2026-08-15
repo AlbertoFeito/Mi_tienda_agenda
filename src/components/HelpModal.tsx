@@ -64,7 +64,7 @@ export default function HelpModal({
   return (
     <Portal>
       <div className="fixed inset-0 z-[300] bg-[#F8FAFC] flex flex-col animate-slide-up">
-        <div className="h-14 bg-[#134E4A] text-white flex items-center px-4 flex-shrink-0">
+        <div className="panel-header bg-[#134E4A] text-white flex items-center px-4 flex-shrink-0">
           <h2 className="text-lg font-semibold truncate">{openTopic ? openTopic.title : 'Ayuda'}</h2>
         </div>
 

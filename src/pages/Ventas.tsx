@@ -392,7 +392,7 @@ export default function Ventas() {
         <Portal>
         <button
           onClick={() => setCheckoutOpen(true)}
-          className="fixed bottom-20 left-4 right-4 max-w-lg mx-auto bg-[#0F766E] text-white h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg z-40"
+          className="above-nav fixed left-4 right-4 mb-2 max-w-lg mx-auto bg-[#0F766E] text-white h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg z-40"
         >
           <ShoppingCart className="w-5 h-5" />
           <span className="font-medium">{cartCount} productos</span>
@@ -412,7 +412,7 @@ export default function Ventas() {
           
           <div 
             ref={checkoutRef}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[100] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[100] flex flex-col pb-safe"
             style={{ maxHeight: '90vh' }}
           >
             <div className="flex justify-center pt-3 pb-1">

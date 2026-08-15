@@ -141,7 +141,7 @@ export default function StockMovements({
 
 function Sheet({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up max-h-[85vh] overflow-y-auto">
+    <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up max-h-[85vh] overflow-y-auto sheet-bottom">
       <div className="flex justify-center mb-3">
         <div className="w-10 h-1 bg-gray-300 rounded-full" />
       </div>

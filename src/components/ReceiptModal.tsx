@@ -43,7 +43,7 @@ export default function ReceiptModal({ data, onClose }: { data: ReceiptData; onC
     <Portal>
       <div className="fixed inset-0 z-[300] flex items-end justify-center">
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-        <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up max-h-[85vh] flex flex-col">
+        <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up max-h-[85vh] flex flex-col sheet-bottom">
           <div className="flex flex-col items-center pt-1 pb-3">
             {/* The shared text is plain SMS/WhatsApp and carries no image, so the
                 logo is here, where the sale is confirmed on screen. */}

@@ -48,7 +48,7 @@ export default function LicenseScreen({ deviceId }: { deviceId: string }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[500] bg-gradient-to-b from-[#0F766E] to-[#134E4A] text-white overflow-y-auto">
+    <div className="fixed inset-0 z-[500] bg-gradient-to-b from-[#0F766E] to-[#134E4A] text-white overflow-y-auto pt-safe pb-safe">
       <div className="min-h-full flex flex-col items-center justify-center px-6 py-10">
         <div className="w-16 h-16 rounded-2xl bg-white/15 flex items-center justify-center mb-5">
           <KeyRound size={30} />

@@ -1194,7 +1194,7 @@ function PaymentForm({ installment, onClose, onPay }: {
     <Portal>
     <div className="fixed inset-0 z-[200] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up">
+      <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-5 animate-slide-up sheet-bottom">
         <div className="flex justify-center mb-3">
           <div className="w-10 h-1 bg-gray-300 rounded-full" />
         </div>

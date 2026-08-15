@@ -182,7 +182,7 @@ export default function Productos() {
 }
 
 function ProductForm({ product, onBack }: { product: Product | null; onBack: () => void }) {
-  const { formatPrice, showToast, convertToCUP, currencyRates } = useApp();
+  const { formatPrice, showToast, convertToCUP } = useApp();
   const dbOwners = useLiveQuery(() => db.owners.toArray(), []) || [];
   const ownerSuggestions =
     useLiveQuery(
@@ -214,7 +214,6 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
   const [showViewer, setShowViewer] = useState(false);
   const [ownerName, setOwnerName] = useState(product?.ownerName || '');
   const [ownerContact, setOwnerContact] = useState(product?.ownerContact || '');
-  const [profitPercent, setProfitPercent] = useState(20);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useBackHandler(onBack);
@@ -326,26 +325,10 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
   // The registered owner behind the selected name, when there is one.
   const registeredOwner = dbOwners.find((o) => o.name === ownerName) || null;
 
-  // Convert a CUP amount back into a given currency using the rates.
-  const fromCUP = (amountCUP: number, currency: Currency): number => {
-    if (currency === 'USD') return amountCUP / currencyRates.USD;
-    if (currency === 'EUR') return amountCUP / currencyRates.EUR;
-    if (currency === 'MLC') return amountCUP / currencyRates.MLC;
-    return amountCUP;
-  };
-
   // Live profit in the official currency (CUP) for any product type.
   const costInCUP = convertToCUP(costPrice, costCurrency);
   const profitPerUnitCUP = convertToCUP(salePrice, saleCurrency) - costInCUP;
   const marginPercent = costInCUP > 0 ? Math.round((profitPerUnitCUP / costInCUP) * 100) : 0;
-
-  // Suggested sale price (in the sale currency) for consignment products.
-  const suggestedSalePrice = useMemo(() => {
-    if (type !== 'consignment' || costPrice <= 0) return 0;
-    const desiredSaleCUP = convertToCUP(costPrice, costCurrency) * (1 + profitPercent / 100);
-    return fromCUP(desiredSaleCUP, saleCurrency);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, costPrice, costCurrency, saleCurrency, profitPercent, currencyRates]);
 
   return (
     <div className="animate-fade-in-up">
@@ -485,29 +468,6 @@ function ProductForm({ product, onBack }: { product: Product | null; onBack: () 
               {formatPrice(profitPerUnitCUP, 'CUP')}
               {costInCUP > 0 && <span className="text-xs font-normal text-[#94A3B8]"> ({marginPercent}%)</span>}
             </span>
-          </div>
-        )}
-
-        {/* Calculadora de precio sugerido para productos ajenos */}
-        {type === 'consignment' && costPrice > 0 && (
-          <div className="bg-[#F0FDFA] rounded-xl p-3 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm text-[#475569]">% Ganancia deseada</span>
-              <NumberField value={profitPercent} onChange={setProfitPercent} min={0} max={500} step={5} className="w-40" />
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-[#475569]">Precio de venta sugerido</span>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-[#0F766E]">{formatPrice(suggestedSalePrice, saleCurrency)}</span>
-                <button
-                  type="button"
-                  onClick={() => setSalePrice(Number(suggestedSalePrice.toFixed(2)))}
-                  className="text-xs font-medium text-white bg-[#0F766E] px-2.5 py-1 rounded-lg active:scale-95"
-                >
-                  Aplicar
-                </button>
-              </div>
-            </div>
           </div>
         )}
 

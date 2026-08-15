@@ -133,7 +133,7 @@ export default function SettingsModal({
   return (
     <Portal>
       <div className="fixed inset-0 z-[300] bg-white flex flex-col animate-slide-up">
-        <div className="h-14 bg-[#134E4A] text-white flex items-center justify-between px-4 flex-shrink-0">
+        <div className="panel-header bg-[#134E4A] text-white flex items-center justify-between px-4 flex-shrink-0">
           <h2 className="text-lg font-semibold">Configuración</h2>
         </div>
 
@@ -328,7 +328,7 @@ export default function SettingsModal({
               </div>
 
               <div className="text-center pt-4">
-                <p className="text-xs text-[#94A3B8]">NayadeStore v4.1</p>
+                <p className="text-xs text-[#94A3B8]">NayadeStore v4.2</p>
                 <p className="text-xs text-[#94A3B8]">Gestión comercial offline</p>
               </div>
             </div>

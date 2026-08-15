@@ -86,7 +86,7 @@ export default function ChangePinModal({ onClose }: { onClose: () => void }) {
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-[600] bg-gradient-to-b from-[#0F766E] to-[#134E4A] text-white flex flex-col items-center justify-center px-8" onClick={onClose}>
+      <div className="fixed inset-0 z-[600] bg-gradient-to-b from-[#0F766E] to-[#134E4A] text-white flex flex-col items-center justify-center px-8 pt-safe pb-safe" onClick={onClose}>
         <div onClick={(e) => e.stopPropagation()} className="flex flex-col items-center">
           <div className="w-16 h-16 rounded-2xl bg-white/15 flex items-center justify-center mb-6">
             <KeyRound size={30} />

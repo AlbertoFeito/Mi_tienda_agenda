@@ -22,8 +22,7 @@ export default function FixedBottomBar({ children }: { children: ReactNode }) {
   return (
     <Portal>
       <div
-        className="fixed left-0 right-0 max-w-lg mx-auto z-[60] bg-white border-t border-[#E2E8F0] px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]"
-        style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
+        className="above-nav fixed left-0 right-0 max-w-lg mx-auto z-[60] bg-white border-t border-[#E2E8F0] px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]"
       >
         {children}
       </div>

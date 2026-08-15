@@ -43,7 +43,7 @@ function AppLayout() {
       <BackButtonManager />
       <Header onReplayTour={() => setReplayTour(true)} />
       {showTour && <Onboarding onFinish={finishTour} />}
-      <main className="flex-1 pt-14 pb-20 px-4 overflow-y-auto">
+      <main className="app-main flex-1 px-4 overflow-y-auto">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/ventas" element={<Ventas />} />

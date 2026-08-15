@@ -72,7 +72,7 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
   });
 
   return (
-    <div className="fixed inset-0 z-[500] bg-gradient-to-b from-[#0F766E] to-[#134E4A] text-white flex flex-col">
+    <div className="fixed inset-0 z-[500] bg-gradient-to-b from-[#0F766E] to-[#134E4A] text-white flex flex-col pt-safe pb-safe">
       <div className="flex justify-end p-4 flex-shrink-0">
         {!isLast && (
           <button onClick={onFinish} className="text-sm text-white/70 px-3 py-2 active:opacity-60">

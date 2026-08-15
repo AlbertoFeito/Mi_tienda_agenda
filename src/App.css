@@ -1,8 +1,59 @@
 /* App-specific styles */
 
-/* Safe area for mobile */
+/*
+ * The real edges of the screen.
+ *
+ * The app targets Android 15, which draws edge to edge: the system clock sits
+ * on top of the header and the gesture bar sits on top of the bottom nav unless
+ * the layout leaves room for them. Only the bottom was handled, so on a phone
+ * that actually reports insets — a Redmi 14C, for instance — the clock landed
+ * on the store name and the nav labels were cut off by the bottom of the
+ * screen. On older phones nothing overlaps, which is why it looked fine
+ * everywhere else.
+ *
+ * Every fixed bar measures itself from these, so there is one place to fix.
+ */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Bar heights including the space the system takes above/below them. */
+  --header-h: calc(3.5rem + var(--safe-top));
+  --nav-h: calc(4rem + var(--safe-bottom));
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* The fixed top bar, and the room the page must leave for it. */
+.app-header {
+  height: var(--header-h);
+  padding-top: var(--safe-top);
+}
+.app-main {
+  padding-top: var(--header-h);
+  padding-bottom: calc(var(--nav-h) + 1rem);
+}
+.app-nav {
+  height: var(--nav-h);
+  padding-bottom: var(--safe-bottom);
+}
+/* Anything pinned just above the bottom nav. */
+.above-nav {
+  bottom: var(--nav-h);
+}
+/* A full-screen panel with its own top bar, e.g. Configuración or la ayuda. */
+.panel-header {
+  height: var(--header-h);
+  padding-top: var(--safe-top);
+}
+/* A sheet that rises from the bottom edge. */
+.sheet-bottom {
+  padding-bottom: calc(1.25rem + var(--safe-bottom));
 }
 
 /* Active scale utility */
